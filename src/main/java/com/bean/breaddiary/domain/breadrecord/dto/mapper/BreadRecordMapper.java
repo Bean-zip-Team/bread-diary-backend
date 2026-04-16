@@ -1,0 +1,70 @@
+package com.bean.breaddiary.domain.breadrecord.dto.mapper;
+
+import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
+import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
+import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
+import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface BreadRecordMapper {
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "bread", source = "bread")
+    @Mapping(target = "photoUrl", source = "photoUrl")
+    @Mapping(target = "eatenDate", source = "eatenDate")
+    BreadRecord mapToBreadRecord(
+            CreateBreadRecordRequest request,
+            UUID userId,
+            Bread bread,
+            String photoUrl,
+            LocalDate eatenDate
+    );
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "bread", source = "bread")
+    @Mapping(target = "photoUrl", source = "photoUrl")
+    @Mapping(target = "eatenDate", source = "eatenDate")
+    BreadRecord mapToBreadRecord(
+            CreateNewBreadRecordRequest request,
+            UUID userId,
+            Bread bread,
+            String photoUrl,
+            LocalDate eatenDate
+    );
+
+    @Mapping(target = "breadId", source = "breadRecord.bread.id")
+    @Mapping(target = "stickerNumber", source = "breadRecord.bread.stickerNumber")
+    @Mapping(target = "name", source = "breadRecord.bread.name")
+    @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
+    @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
+    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    @Mapping(target = "isFirstRecord", source = "isFirstRecord")
+    BreadRecordCreateResponse mapToCreateResponse(
+            BreadRecord breadRecord,
+            Boolean isFirstRecord
+    );
+
+    default String toThumbnailUrl(String photoUrl) {
+        if (photoUrl == null) {
+            return null;
+        }
+
+        int extensionIndex = photoUrl.lastIndexOf('.');
+        if (extensionIndex < 0) {
+            return photoUrl + "_thumb";
+        }
+
+        return photoUrl.substring(0, extensionIndex)
+                + "_thumb"
+                + photoUrl.substring(extensionIndex);
+    }
+}
