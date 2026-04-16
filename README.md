@@ -1,2 +1,2 @@
-# breadbook-backend
-breadbook (Back-end)
+# bread-diary-backend
+bread-diary (Back-end)
