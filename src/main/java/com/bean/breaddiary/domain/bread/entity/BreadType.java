@@ -1,4 +1,4 @@
-package com.bean.breadbook.domain.bread.entity;
+package com.bean.breaddiary.domain.bread.entity;
 
 public enum BreadType {
     PASTRY,
