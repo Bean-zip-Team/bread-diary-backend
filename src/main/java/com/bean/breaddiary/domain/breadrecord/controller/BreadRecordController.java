@@ -4,11 +4,11 @@ import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordReque
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordComplexService;
+import com.bean.breaddiary.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -57,17 +57,17 @@ public class BreadRecordController {
             description = "카탈로그에 이미 존재하는 빵에 대해 새 기록을 생성합니다. multipart/form-data 필드명은 명세서와 동일하게 snake_case를 사용합니다."
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "빵 기록 생성 성공",
                     content = @Content(schema = @Schema(implementation = BreadRecordCreateResponse.class))
             ),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "404", description = "빵 카탈로그를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "빵 카탈로그를 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BreadRecordCreateResponse> createBreadRecord(
+    public ResponseEntity<ApiResponse<BreadRecordCreateResponse>> createBreadRecord(
             @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
             @RequestHeader(value = "X-USER-ID", required = false) UUID userId,
             @Valid @ModelAttribute CreateBreadRecordRequest request
@@ -77,7 +77,8 @@ public class BreadRecordController {
                 request
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response));
     }
 
     /**
@@ -92,17 +93,17 @@ public class BreadRecordController {
             description = "카탈로그에 없는 신규 빵을 추가하고 첫 기록을 생성합니다. multipart/form-data 필드명은 명세서와 동일하게 snake_case를 사용합니다."
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "신규 빵 및 기록 생성 성공",
                     content = @Content(schema = @Schema(implementation = BreadRecordCreateResponse.class))
             ),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "409", description = "중복된 빵 이름"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "중복된 빵 이름"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping(path = "/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BreadRecordCreateResponse> createNewBreadRecord(
+    public ResponseEntity<ApiResponse<BreadRecordCreateResponse>> createNewBreadRecord(
             @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
             @RequestHeader(value = "X-USER-ID", required = false) UUID userId,
             @Valid @ModelAttribute CreateNewBreadRecordRequest request
@@ -112,7 +113,8 @@ public class BreadRecordController {
                 request
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response));
     }
 
     private UUID resolveUserId(UUID userId) {
