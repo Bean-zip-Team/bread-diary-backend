@@ -54,7 +54,7 @@ public class BreadRecordController {
      */
     @Operation(
             summary = "기존 빵 기록 생성",
-            description = "카탈로그에 이미 존재하는 빵에 대해 새 기록을 생성합니다. multipart/form-data 필드명은 camelCase를 사용합니다."
+            description = "카탈로그에 이미 존재하는 빵에 대해 새 기록을 생성합니다. multipart/form-data 필드명은 명세서와 동일하게 snake_case를 사용합니다."
     )
     @ApiResponses({
             @ApiResponse(
@@ -89,7 +89,7 @@ public class BreadRecordController {
      */
     @Operation(
             summary = "신규 빵 추가 및 기록 생성",
-            description = "카탈로그에 없는 신규 빵을 추가하고 첫 기록을 생성합니다. multipart/form-data 필드명은 camelCase를 사용합니다."
+            description = "카탈로그에 없는 신규 빵을 추가하고 첫 기록을 생성합니다. multipart/form-data 필드명은 명세서와 동일하게 snake_case를 사용합니다."
     )
     @ApiResponses({
             @ApiResponse(
