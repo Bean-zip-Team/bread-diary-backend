@@ -63,16 +63,17 @@ class BreadRecordControllerContractTest {
                         .param("rating", "5")
                         .param("review", "겉은 바삭하고 안은 촉촉해서 완벽했어요."))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.bread_id").value(breadId.toString()))
-                .andExpect(jsonPath("$.sticker_number").value(7))
-                .andExpect(jsonPath("$.photo_url").value("https://cdn.bread-diary.app/bread-photos/record.webp"))
-                .andExpect(jsonPath("$.photo_thumbnail_url").value("https://cdn.bread-diary.app/bread-photos/record_thumb.webp"))
-                .andExpect(jsonPath("$.bread_type").value("PASTRY"))
-                .andExpect(jsonPath("$.shop_name").value("르뺑블루 성수점"))
-                .andExpect(jsonPath("$.eaten_date").value("2026-03-14"))
-                .andExpect(jsonPath("$.is_first_record").value(false))
-                .andExpect(jsonPath("$.breadId").doesNotExist())
-                .andExpect(jsonPath("$.shopName").doesNotExist());
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.bread_id").value(breadId.toString()))
+                .andExpect(jsonPath("$.data.sticker_number").value(7))
+                .andExpect(jsonPath("$.data.photo_url").value("https://cdn.bread-diary.app/bread-photos/record.webp"))
+                .andExpect(jsonPath("$.data.photo_thumbnail_url").value("https://cdn.bread-diary.app/bread-photos/record_thumb.webp"))
+                .andExpect(jsonPath("$.data.bread_type").value("PASTRY"))
+                .andExpect(jsonPath("$.data.shop_name").value("르뺑블루 성수점"))
+                .andExpect(jsonPath("$.data.eaten_date").value("2026-03-14"))
+                .andExpect(jsonPath("$.data.is_first_record").value(false))
+                .andExpect(jsonPath("$.data.breadId").doesNotExist())
+                .andExpect(jsonPath("$.data.shopName").doesNotExist());
 
         ArgumentCaptor<CreateBreadRecordRequest> requestCaptor =
                 ArgumentCaptor.forClass(CreateBreadRecordRequest.class);
@@ -106,10 +107,11 @@ class BreadRecordControllerContractTest {
                         .param("rating", "4")
                         .param("review", "쫄깃했어요."))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.bread_id").value(breadId.toString()))
-                .andExpect(jsonPath("$.bread_type").value("BAGEL"))
-                .andExpect(jsonPath("$.is_first_record").value(true))
-                .andExpect(jsonPath("$.breadType").doesNotExist());
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.bread_id").value(breadId.toString()))
+                .andExpect(jsonPath("$.data.bread_type").value("BAGEL"))
+                .andExpect(jsonPath("$.data.is_first_record").value(true))
+                .andExpect(jsonPath("$.data.breadType").doesNotExist());
 
         ArgumentCaptor<CreateNewBreadRecordRequest> requestCaptor =
                 ArgumentCaptor.forClass(CreateNewBreadRecordRequest.class);
