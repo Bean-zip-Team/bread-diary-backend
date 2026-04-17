@@ -6,6 +6,7 @@ import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordReque
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCountProjection;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,19 @@ public class BreadRecordService {
 
     public boolean existsActiveRecord(UUID userId, Bread bread) {
         return breadRecordRepository.existsByUserIdAndBreadAndDeletedAtIsNull(userId, bread);
+    }
+
+    public Map<UUID, Long> countActiveRecordsByBreadIds(UUID userId, List<UUID> breadIds) {
+        if (userId == null || breadIds == null || breadIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return breadRecordRepository.countActiveRecordsByBreadIds(userId, breadIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        BreadRecordCountProjection::getBreadId,
+                        BreadRecordCountProjection::getEatCount
+                ));
     }
 
     @Transactional

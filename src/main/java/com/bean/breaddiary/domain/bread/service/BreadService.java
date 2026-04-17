@@ -1,15 +1,20 @@
 package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.mapper.BreadMapper;
+import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -17,6 +22,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class BreadService {
 
+    private static final int AUTOCOMPLETE_LIMIT = 20;
     private static final String DEFAULT_USER_BREAD_IMAGE_URL =
             "https://cdn.bread-diary.app/catalog/default_user_bread.webp";
 
@@ -33,6 +39,26 @@ public class BreadService {
 
     public boolean existsByName(String name) {
         return breadRepository.existsByName(name);
+    }
+
+    public List<Bread> searchAutocompleteBreads(String query) {
+        Pageable limit = PageRequest.of(0, AUTOCOMPLETE_LIMIT);
+
+        if (query == null || query.isBlank()) {
+            return breadRepository.findPopularOrderByRecordCountDesc(limit);
+        }
+
+        return breadRepository.findByNameContainingIgnoreCaseOrderByStickerNumberAsc(
+                query.trim(),
+                limit
+        );
+    }
+
+    public BreadAutocompleteResponse createAutocompleteResponse(
+            List<Bread> breads,
+            Map<UUID, Long> eatCounts
+    ) {
+        return breadMapper.mapToAutocompleteResponse(breads, eatCounts);
     }
 
     @Transactional

@@ -2,7 +2,10 @@ package com.bean.breaddiary.domain.breadrecord.repository;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCountProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,4 +16,17 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
     List<BreadRecord> findAllByUserIdAndBread(UUID userId, Bread bread);
     long countByUserIdAndBread(UUID userId, Bread bread);
     boolean existsByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.userId = :userId
+              and br.bread.id in :breadIds
+              and br.deletedAt is null
+            group by br.bread.id
+            """)
+    List<BreadRecordCountProjection> countActiveRecordsByBreadIds(
+            @Param("userId") UUID userId,
+            @Param("breadIds") List<UUID> breadIds
+    );
 }
