@@ -5,10 +5,15 @@ import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordReque
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordComplexService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -39,6 +44,7 @@ class BreadRecordControllerContractTest {
         breadRecordComplexService = mock(BreadRecordComplexService.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new BreadRecordController(breadRecordComplexService))
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
 
@@ -141,5 +147,12 @@ class BreadRecordControllerContractTest {
                 isFirstRecord,
                 LocalDateTime.of(2026, 3, 14, 9, 30)
         );
+    }
+
+    private ObjectMapper snakeCaseObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
     }
 }

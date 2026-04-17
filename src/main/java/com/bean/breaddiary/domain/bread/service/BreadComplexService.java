@@ -141,7 +141,7 @@ public class BreadComplexService {
             return sortedBreads.stream()
                     .filter(bread -> isCollected(bread, statsMap))
                     .sorted(Comparator
-                            .comparing((Bread bread) -> statsMap.get(bread.getId()).latestEatenDate(), Comparator.reverseOrder())
+                            .comparing((Bread bread) -> statsMap.get(bread.getId()).getLatestEatenDate(), Comparator.reverseOrder())
                             .thenComparing(bread -> bread.getId().toString()))
                     .toList();
         }
@@ -150,7 +150,7 @@ public class BreadComplexService {
             return sortedBreads.stream()
                     .filter(bread -> isCollected(bread, statsMap))
                     .sorted(Comparator
-                            .comparing((Bread bread) -> statsMap.get(bread.getId()).avgRating(), Comparator.reverseOrder())
+                            .comparing((Bread bread) -> statsMap.get(bread.getId()).getAvgRating(), Comparator.reverseOrder())
                             .thenComparing(bread -> bread.getId().toString()))
                     .toList();
         }
@@ -217,12 +217,12 @@ public class BreadComplexService {
     ) {
         BreadRecordCatalogStats stats = statsMap.get(lastBread.getId());
 
-        if (SORT_LATEST.equals(sort) && stats != null && stats.latestEatenDate() != null) {
-            return stats.latestEatenDate() + "_" + lastBread.getId();
+        if (SORT_LATEST.equals(sort) && stats != null && stats.getLatestEatenDate() != null) {
+            return stats.getLatestEatenDate() + "_" + lastBread.getId();
         }
 
-        if (SORT_RATING.equals(sort) && stats != null && stats.avgRating() != null) {
-            return roundRating(stats.avgRating()) + "_" + lastBread.getId();
+        if (SORT_RATING.equals(sort) && stats != null && stats.getAvgRating() != null) {
+            return roundRating(stats.getAvgRating()) + "_" + lastBread.getId();
         }
 
         return String.valueOf(lastBread.getStickerNumber());
@@ -231,7 +231,7 @@ public class BreadComplexService {
     private boolean isCollected(Bread bread, Map<UUID, BreadRecordCatalogStats> statsMap) {
         BreadRecordCatalogStats stats = statsMap.get(bread.getId());
 
-        return stats != null && stats.eatCount() != null && stats.eatCount() > 0;
+        return stats != null && stats.getEatCount() != null && stats.getEatCount() > 0;
     }
 
     private String normalizeSort(String sort) {

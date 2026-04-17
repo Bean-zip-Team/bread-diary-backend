@@ -4,8 +4,13 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteItemRespon
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -29,6 +34,7 @@ class BreadControllerAutocompleteTest {
         breadComplexService = mock(BreadComplexService.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new BreadController(breadComplexService))
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
 
@@ -77,5 +83,12 @@ class BreadControllerAutocompleteTest {
                 .andExpect(jsonPath("$.data.items").isArray());
 
         verify(breadComplexService).autocompleteBreads(null, null);
+    }
+
+    private ObjectMapper snakeCaseObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
     }
 }
