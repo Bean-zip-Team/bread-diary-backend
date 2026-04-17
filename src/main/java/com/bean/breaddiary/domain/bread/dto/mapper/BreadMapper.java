@@ -60,7 +60,7 @@ public interface BreadMapper {
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(stats))")
     @Mapping(target = "avgRating", expression = "java(resolveAvgRating(stats))")
     @Mapping(target = "latestPhotoUrl", expression = "java(resolveLatestPhotoUrl(stats))")
-    @Mapping(target = "latestEatenDate", expression = "java(stats == null ? null : stats.latestEatenDate())")
+    @Mapping(target = "latestEatenDate", expression = "java(stats == null ? null : stats.getLatestEatenDate())")
     BreadCatalogItemResponse mapToCatalogItem(Bread bread, BreadRecordCatalogStats stats);
 
     default BreadCatalogListResponse mapToCatalogListResponse(
@@ -90,25 +90,25 @@ public interface BreadMapper {
     }
 
     default Long resolveEatCount(BreadRecordCatalogStats stats) {
-        return stats == null || stats.eatCount() == null ? 0L : stats.eatCount();
+        return stats == null || stats.getEatCount() == null ? 0L : stats.getEatCount();
     }
 
     default Double resolveAvgRating(BreadRecordCatalogStats stats) {
-        if (stats == null || stats.avgRating() == null) {
+        if (stats == null || stats.getAvgRating() == null) {
             return null;
         }
 
-        return BigDecimal.valueOf(stats.avgRating())
+        return BigDecimal.valueOf(stats.getAvgRating())
                 .setScale(1, RoundingMode.HALF_UP)
                 .doubleValue();
     }
 
     default String resolveLatestPhotoUrl(BreadRecordCatalogStats stats) {
-        if (stats == null || stats.latestPhotoUrl() == null) {
+        if (stats == null || stats.getLatestPhotoUrl() == null) {
             return null;
         }
 
-        return toThumbnailUrl(stats.latestPhotoUrl());
+        return toThumbnailUrl(stats.getLatestPhotoUrl());
     }
 
     default String toThumbnailUrl(String photoUrl) {

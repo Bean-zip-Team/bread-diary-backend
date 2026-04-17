@@ -1,7 +1,6 @@
 package com.bean.breaddiary.domain.breadrecord.dto.request;
 
 import com.bean.breaddiary.domain.bread.entity.BreadType;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -31,7 +30,6 @@ public class CreateNewBreadRecordRequest {
     @Schema(description = "빵 종류", example = "PASTRY", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {
             "PASTRY", "BREAD", "DONUT", "CAKE", "BAGEL", "TART", "OTHER"
     })
-    @JsonProperty("bread_type")
     @NotNull(message = "올바른 빵 종류를 선택해주세요.")
     private BreadType breadType;
 
@@ -40,12 +38,10 @@ public class CreateNewBreadRecordRequest {
     private MultipartFile photo;
 
     @Schema(description = "구매처", example = "카페봄봄 합정점", maxLength = 50)
-    @JsonProperty("shop_name")
     @Size(max = 50, message = "구매처는 50자 이내로 입력해주세요.")
     private String shopName;
 
     @Schema(description = "먹은 날짜. 미입력 시 오늘 날짜로 저장", example = "2026-04-16")
-    @JsonProperty("eaten_date")
     private LocalDate eatenDate;
 
     @Schema(description = "별점", example = "4", minimum = "1", maximum = "5", requiredMode = Schema.RequiredMode.REQUIRED)

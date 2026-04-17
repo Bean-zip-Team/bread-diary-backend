@@ -94,7 +94,7 @@ public interface BreadRecordMapper {
                         stats.getLatestEatenDate()
                 ))
                 .collect(Collectors.toMap(
-                        BreadRecordCatalogStats::breadId,
+                        BreadRecordCatalogStats::getBreadId,
                         stats -> stats
                 ));
     }
