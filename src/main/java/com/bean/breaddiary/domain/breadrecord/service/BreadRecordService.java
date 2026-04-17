@@ -2,6 +2,7 @@ package com.bean.breaddiary.domain.breadrecord.service;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadrecord.dto.mapper.BreadRecordMapper;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
@@ -44,6 +45,17 @@ public class BreadRecordService {
                         BreadRecordCountProjection::getBreadId,
                         BreadRecordCountProjection::getEatCount
                 ));
+    }
+
+    public Map<UUID, BreadRecordCatalogStats> findCatalogStatsByBreadIds(UUID userId, List<UUID> breadIds) {
+        if (userId == null || breadIds == null || breadIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return breadRecordMapper.mapToCatalogStatsMap(
+                breadRecordRepository.findCatalogStatsByBreadIds(userId, breadIds),
+                breadRecordRepository.findLatestPhotoUrlsByBreadIds(userId, breadIds)
+        );
     }
 
     @Transactional
