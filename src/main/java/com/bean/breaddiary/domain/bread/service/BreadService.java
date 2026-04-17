@@ -2,8 +2,11 @@ package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.mapper.BreadMapper;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -61,6 +64,29 @@ public class BreadService {
         return breadMapper.mapToAutocompleteResponse(breads, eatCounts);
     }
 
+    public List<Bread> findCatalogCandidates(String search, BreadType breadType) {
+        return breadRepository.findCatalogCandidates(
+                normalizeSearch(search),
+                breadType
+        );
+    }
+
+    public BreadCatalogListResponse createCatalogListResponse(
+            List<Bread> breads,
+            Map<UUID, BreadRecordCatalogStats> statsMap,
+            String nextCursor,
+            boolean hasMore,
+            long totalCount
+    ) {
+        return breadMapper.mapToCatalogListResponse(
+                breads,
+                statsMap,
+                nextCursor,
+                hasMore,
+                totalCount
+        );
+    }
+
     @Transactional
     public Bread createUserBread(CreateNewBreadRecordRequest request, UUID userId) {
         validateBreadNameNotDuplicated(request.getName());
@@ -88,5 +114,13 @@ public class BreadService {
                     "같은 이름의 빵이 이미 카탈로그에 있습니다."
             );
         }
+    }
+
+    private String normalizeSearch(String search) {
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+
+        return search.trim();
     }
 }

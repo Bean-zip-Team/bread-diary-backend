@@ -1,6 +1,9 @@
 package com.bean.breaddiary.domain.breadrecord.dto.mapper;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStatsProjection;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
@@ -10,7 +13,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface BreadRecordMapper {
@@ -66,5 +72,30 @@ public interface BreadRecordMapper {
         return photoUrl.substring(0, extensionIndex)
                 + "_thumb"
                 + photoUrl.substring(extensionIndex);
+    }
+
+    default Map<UUID, BreadRecordCatalogStats> mapToCatalogStatsMap(
+            List<BreadRecordCatalogStatsProjection> statsProjections,
+            List<BreadRecordLatestPhotoProjection> latestPhotoProjections
+    ) {
+        Map<UUID, String> latestPhotoUrls = latestPhotoProjections.stream()
+                .collect(Collectors.toMap(
+                        BreadRecordLatestPhotoProjection::getBreadId,
+                        BreadRecordLatestPhotoProjection::getLatestPhotoUrl,
+                        (left, right) -> left
+                ));
+
+        return statsProjections.stream()
+                .map(stats -> new BreadRecordCatalogStats(
+                        stats.getBreadId(),
+                        stats.getEatCount(),
+                        stats.getAvgRating(),
+                        latestPhotoUrls.get(stats.getBreadId()),
+                        stats.getLatestEatenDate()
+                ))
+                .collect(Collectors.toMap(
+                        BreadRecordCatalogStats::breadId,
+                        stats -> stats
+                ));
     }
 }

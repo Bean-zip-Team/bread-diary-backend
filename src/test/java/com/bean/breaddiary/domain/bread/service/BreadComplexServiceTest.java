@@ -1,12 +1,15 @@
 package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -70,5 +73,126 @@ class BreadComplexServiceTest {
         verify(breadService).searchAutocompleteBreads(null);
         verifyNoInteractions(breadRecordService);
         verify(breadService).createAutocompleteResponse(List.of(), Map.of());
+    }
+
+    @Test
+    void getBreadCatalogCreatesAnonymousStickerNumberPage() {
+        Bread firstBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                1,
+                "크루아상",
+                BreadType.PASTRY
+        );
+        Bread secondBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                2,
+                "베이글",
+                BreadType.BAGEL
+        );
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "1", true, 2L);
+
+        when(breadService.findCatalogCandidates(null, null)).thenReturn(List.of(firstBread, secondBread));
+        when(breadService.createCatalogListResponse(
+                List.of(firstBread),
+                Map.of(),
+                "1",
+                true,
+                2L
+        )).thenReturn(expected);
+
+        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
+                "sticker_number",
+                "all",
+                null,
+                null,
+                null,
+                1,
+                null
+        );
+
+        assertSame(expected, actual);
+        verify(breadService).findCatalogCandidates(null, null);
+        verifyNoInteractions(breadRecordService);
+        verify(breadService).createCatalogListResponse(
+                List.of(firstBread),
+                Map.of(),
+                "1",
+                true,
+                2L
+        );
+    }
+
+    @Test
+    void getBreadCatalogAppliesCollectedFilterWithUserStats() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Bread collectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                1,
+                "크루아상",
+                BreadType.PASTRY
+        );
+        Bread uncollectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                2,
+                "베이글",
+                BreadType.BAGEL
+        );
+        BreadRecordCatalogStats stats = new BreadRecordCatalogStats(
+                collectedBread.getId(),
+                3L,
+                4.666,
+                "https://cdn.bread-diary.app/bread-photos/record.webp",
+                LocalDate.of(2026, 3, 14)
+        );
+        Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(collectedBread.getId(), stats);
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 1L);
+
+        when(breadService.findCatalogCandidates("크루", BreadType.PASTRY))
+                .thenReturn(List.of(collectedBread, uncollectedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(
+                userId,
+                List.of(collectedBread.getId(), uncollectedBread.getId())
+        )).thenReturn(statsMap);
+        when(breadService.createCatalogListResponse(
+                List.of(collectedBread),
+                statsMap,
+                null,
+                false,
+                1L
+        )).thenReturn(expected);
+
+        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
+                "sticker_number",
+                "collected",
+                BreadType.PASTRY,
+                "크루",
+                null,
+                20,
+                userId
+        );
+
+        assertSame(expected, actual);
+        verify(breadService).findCatalogCandidates("크루", BreadType.PASTRY);
+        verify(breadRecordService).findCatalogStatsByBreadIds(
+                userId,
+                List.of(collectedBread.getId(), uncollectedBread.getId())
+        );
+        verify(breadService).createCatalogListResponse(
+                List.of(collectedBread),
+                statsMap,
+                null,
+                false,
+                1L
+        );
+    }
+
+    private Bread createBread(UUID id, Integer stickerNumber, String name, BreadType breadType) {
+        return Bread.builder()
+                .id(id)
+                .stickerNumber(stickerNumber)
+                .name(name)
+                .breadType(breadType)
+                .imageUrl("https://cdn.bread-diary.app/breads/" + stickerNumber + ".webp")
+                .build();
     }
 }
