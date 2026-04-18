@@ -83,4 +83,21 @@ public class BreadRecord {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    public void update(
+            String photoUrl,
+            String shopName,
+            LocalDate eatenDate,
+            Integer rating,
+            String review
+    ) {
+        this.photoUrl = photoUrl;
+        this.shopName = shopName;
+        this.eatenDate = eatenDate;
+        this.rating = rating;
+        this.review = review;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }

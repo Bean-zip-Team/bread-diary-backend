@@ -10,15 +10,19 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> {
 
+    Optional<BreadRecord> findByIdAndDeletedAtIsNull(UUID id);
     List<BreadRecord> findAllByUserId(UUID userId);
     List<BreadRecord> findAllByUserIdAndBread(UUID userId, Bread bread);
     List<BreadRecord> findAllByUserIdAndBreadAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId, Bread bread);
+    long countByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
     long countByUserIdAndBread(UUID userId, Bread bread);
     boolean existsByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
+    boolean existsByBreadAndDeletedAtIsNull(Bread bread);
 
     @Query("""
             select br.bread.id as breadId, count(br) as eatCount

@@ -8,6 +8,7 @@ import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogS
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
+import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDetailResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import org.mapstruct.Mapper;
@@ -63,6 +64,15 @@ public interface BreadRecordMapper {
             BreadRecord breadRecord,
             Boolean isFirstRecord
     );
+
+    @Mapping(target = "breadId", source = "breadRecord.bread.id")
+    @Mapping(target = "stickerNumber", source = "breadRecord.bread.stickerNumber")
+    @Mapping(target = "name", source = "breadRecord.bread.name")
+    @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
+    @Mapping(target = "breadTypeLabel", expression = "java(toBreadTypeLabel(breadRecord.getBread().getBreadType()))")
+    @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
+    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    BreadRecordDetailResponse mapToDetailResponse(BreadRecord breadRecord);
 
     default String toThumbnailUrl(String photoUrl) {
         if (photoUrl == null) {
@@ -146,5 +156,21 @@ public interface BreadRecordMapper {
         return BigDecimal.valueOf(rating)
                 .setScale(1, RoundingMode.HALF_UP)
                 .doubleValue();
+    }
+
+    default String toBreadTypeLabel(com.bean.breaddiary.domain.bread.entity.BreadType breadType) {
+        if (breadType == null) {
+            return null;
+        }
+
+        return switch (breadType) {
+            case PASTRY -> "페이스트리";
+            case BREAD -> "식빵";
+            case DONUT -> "도넛";
+            case CAKE -> "케이크";
+            case BAGEL -> "베이글";
+            case TART -> "타르트";
+            case OTHER -> "기타";
+        };
     }
 }
