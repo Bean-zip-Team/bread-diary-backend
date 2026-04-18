@@ -75,7 +75,9 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.token_type").value("Bearer"))
                 .andExpect(jsonPath("$.data.access_token_expires_at").value("2026-04-20T10:00:00"))
                 .andExpect(jsonPath("$.data.refresh_token_expires_at").value("2026-05-19T10:00:00"))
-                .andExpect(jsonPath("$.data.new_user").value(true));
+                .andExpect(jsonPath("$.data.new_user").value(true))
+                .andExpect(jsonPath("$.data.userId").doesNotExist())
+                .andExpect(jsonPath("$.data.accessToken").doesNotExist());
 
         ArgumentCaptor<TossLoginRequest> requestCaptor = ArgumentCaptor.forClass(TossLoginRequest.class);
         verify(authService).loginWithToss(requestCaptor.capture());

@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -213,6 +214,143 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginWithTossReactivatesDeletedUserFoundByTossUserKey() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440003");
+        LocalDateTime accessTokenExpiresAt = LocalDateTime.of(2026, 4, 20, 10, 0);
+        LocalDateTime refreshTokenExpiresAt = LocalDateTime.of(2026, 5, 19, 10, 0);
+        User deletedUser = User.builder()
+                .id(userId)
+                .tossUserKey("toss-user-key-87654321")
+                .nickname("old-name")
+                .email("old@toss.im")
+                .deletedAt(LocalDateTime.of(2026, 4, 1, 10, 0))
+                .build();
+
+        prepareSuccessfulLogin(
+                "toss-user-key-87654321",
+                "Fresh Name",
+                "fresh@toss.im",
+                userId,
+                sessionId,
+                accessTokenExpiresAt,
+                refreshTokenExpiresAt
+        );
+        when(userRepository.findByTossUserKey("toss-user-key-87654321"))
+                .thenReturn(Optional.of(deletedUser));
+
+        AuthTokenResponse actual = authService.loginWithToss(
+                new TossLoginRequest("auth-code", "DEFAULT")
+        );
+
+        assertFalse(actual.isNewUser());
+        assertFalse(deletedUser.isDeleted());
+        assertEquals("Fresh Name", deletedUser.getNickname());
+        assertEquals("fresh@toss.im", deletedUser.getEmail());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void loginWithTossLinksLegacyUserFoundByEmail() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440004");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440005");
+        LocalDateTime accessTokenExpiresAt = LocalDateTime.of(2026, 4, 20, 10, 0);
+        LocalDateTime refreshTokenExpiresAt = LocalDateTime.of(2026, 5, 19, 10, 0);
+        User existingUser = User.builder()
+                .id(userId)
+                .nickname("legacy-user")
+                .email("legacy@toss.im")
+                .build();
+
+        prepareSuccessfulLogin(
+                "toss-user-key-99999999",
+                "legacy-user",
+                "legacy@toss.im",
+                userId,
+                sessionId,
+                accessTokenExpiresAt,
+                refreshTokenExpiresAt
+        );
+        when(userRepository.findByTossUserKey("toss-user-key-99999999"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("legacy@toss.im"))
+                .thenReturn(Optional.of(existingUser));
+
+        AuthTokenResponse actual = authService.loginWithToss(
+                new TossLoginRequest("auth-code", "DEFAULT")
+        );
+
+        assertFalse(actual.isNewUser());
+        assertEquals("toss-user-key-99999999", existingUser.getTossUserKey());
+        assertEquals("legacy@toss.im", existingUser.getEmail());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void loginWithTossUsesFallbackNicknameWhenDecryptionConfigIsMissing() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440006");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440007");
+        LocalDateTime accessTokenExpiresAt = LocalDateTime.of(2026, 4, 20, 10, 0);
+        LocalDateTime refreshTokenExpiresAt = LocalDateTime.of(2026, 5, 19, 10, 0);
+
+        when(tossAuthClient.exchangeAuthorizationCode("auth-code", "DEFAULT"))
+                .thenReturn(new TossAuthClient.TossGenerateTokenSuccess(
+                        "toss-access-token",
+                        "toss-refresh-token",
+                        "bearer",
+                        3600L,
+                        "profile"
+                ));
+        when(tossAuthClient.getUserInfo("toss-access-token"))
+                .thenReturn(new TossAuthClient.TossLoginMeSuccess(
+                        TextNode.valueOf("toss-user-key-fallback"),
+                        "encrypted-name",
+                        null
+                ));
+        when(tossUserInfoDecryptor.decryptNullable("encrypted-name"))
+                .thenReturn(null);
+        when(userRepository.findByTossUserKey("toss-user-key-fallback"))
+                .thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> {
+                    User savedUser = invocation.getArgument(0);
+                    return User.builder()
+                            .id(userId)
+                            .tossUserKey(savedUser.getTossUserKey())
+                            .nickname(savedUser.getNickname())
+                            .email(savedUser.getEmail())
+                            .build();
+                });
+        when(userSessionService.createSession(
+                eq(userId),
+                eq("__PENDING_REFRESH_TOKEN__"),
+                anyString(),
+                any(LocalDateTime.class)
+        )).thenReturn(UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .refreshTokenHash("__PENDING_REFRESH_TOKEN__")
+                .currentJti("initial-jti")
+                .refreshExpiresAt(refreshTokenExpiresAt)
+                .build());
+        when(userSessionService.calculateAccessTokenExpiresAt(any(LocalDateTime.class)))
+                .thenReturn(accessTokenExpiresAt);
+        when(userSessionService.calculateRefreshTokenExpiresAt(any(LocalDateTime.class)))
+                .thenReturn(refreshTokenExpiresAt);
+
+        AuthTokenResponse actual = authService.loginWithToss(
+                new TossLoginRequest("auth-code", "DEFAULT")
+        );
+
+        assertTrue(actual.isNewUser());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertTrue(userCaptor.getValue().getNickname().startsWith("toss-"));
+        assertNull(userCaptor.getValue().getEmail());
+    }
+
+    @Test
     void refreshRejectsRotatedRefreshTokenReuse() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440020");
         UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440021");
@@ -295,5 +433,50 @@ class AuthServiceTest {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private void prepareSuccessfulLogin(
+            String tossUserKey,
+            String decryptedName,
+            String decryptedEmail,
+            UUID userId,
+            UUID sessionId,
+            LocalDateTime accessTokenExpiresAt,
+            LocalDateTime refreshTokenExpiresAt
+    ) {
+        when(tossAuthClient.exchangeAuthorizationCode("auth-code", "DEFAULT"))
+                .thenReturn(new TossAuthClient.TossGenerateTokenSuccess(
+                        "toss-access-token",
+                        "toss-refresh-token",
+                        "bearer",
+                        3600L,
+                        "profile"
+                ));
+        when(tossAuthClient.getUserInfo("toss-access-token"))
+                .thenReturn(new TossAuthClient.TossLoginMeSuccess(
+                        TextNode.valueOf(tossUserKey),
+                        "encrypted-name",
+                        "encrypted-email"
+                ));
+        when(tossUserInfoDecryptor.decryptNullable("encrypted-name"))
+                .thenReturn(decryptedName);
+        when(tossUserInfoDecryptor.decryptNullable("encrypted-email"))
+                .thenReturn(decryptedEmail);
+        when(userSessionService.createSession(
+                eq(userId),
+                eq("__PENDING_REFRESH_TOKEN__"),
+                anyString(),
+                any(LocalDateTime.class)
+        )).thenReturn(UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .refreshTokenHash("__PENDING_REFRESH_TOKEN__")
+                .currentJti("initial-jti")
+                .refreshExpiresAt(refreshTokenExpiresAt)
+                .build());
+        when(userSessionService.calculateAccessTokenExpiresAt(any(LocalDateTime.class)))
+                .thenReturn(accessTokenExpiresAt);
+        when(userSessionService.calculateRefreshTokenExpiresAt(any(LocalDateTime.class)))
+                .thenReturn(refreshTokenExpiresAt);
     }
 }
