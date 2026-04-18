@@ -4,10 +4,11 @@ import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.UpdateBreadRecordRequest;
+import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDeleteResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDetailResponse;
-import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordComplexService;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -39,13 +40,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class BreadRecordControllerContractTest {
 
-    private static final UUID DUMMY_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID AUTHENTICATED_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID RECORD_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+    private static final UUID BREAD_ID = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
 
     private BreadRecordComplexService breadRecordComplexService;
     private MockMvc mockMvc;
-
-    private static final UUID RECORD_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
-    private static final UUID BREAD_ID = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
 
     @BeforeEach
     void setUp() {
@@ -61,10 +61,11 @@ class BreadRecordControllerContractTest {
         UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
         BreadRecordCreateResponse response = createResponse(breadId, BreadType.PASTRY, false);
 
-        when(breadRecordComplexService.createBreadRecord(eq(DUMMY_USER_ID), any(CreateBreadRecordRequest.class)))
+        when(breadRecordComplexService.createBreadRecord(eq(AUTHENTICATED_USER_ID), any(CreateBreadRecordRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(multipart("/breads")
+                        .requestAttr(AuthRequestAttributes.USER_ID, AUTHENTICATED_USER_ID)
                         .file(new MockMultipartFile(
                                 "photo",
                                 "croissant.webp",
@@ -72,10 +73,10 @@ class BreadRecordControllerContractTest {
                                 "photo".getBytes()
                         ))
                         .param("bread_id", breadId.toString())
-                        .param("shop_name", "르뺑블루 성수점")
+                        .param("shop_name", "루트브레드 성수점")
                         .param("eaten_date", "2026-03-14")
                         .param("rating", "5")
-                        .param("review", "겉은 바삭하고 안은 촉촉해서 완벽했어요."))
+                        .param("review", "겉은 바삭하고 속이 촉촉해서 만족했어요"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.bread_id").value(breadId.toString()))
@@ -83,7 +84,7 @@ class BreadRecordControllerContractTest {
                 .andExpect(jsonPath("$.data.photo_url").value("https://cdn.bread-diary.app/bread-photos/record.webp"))
                 .andExpect(jsonPath("$.data.photo_thumbnail_url").value("https://cdn.bread-diary.app/bread-photos/record_thumb.webp"))
                 .andExpect(jsonPath("$.data.bread_type").value("PASTRY"))
-                .andExpect(jsonPath("$.data.shop_name").value("르뺑블루 성수점"))
+                .andExpect(jsonPath("$.data.shop_name").value("루트브레드 성수점"))
                 .andExpect(jsonPath("$.data.eaten_date").value("2026-03-14"))
                 .andExpect(jsonPath("$.data.is_first_record").value(false))
                 .andExpect(jsonPath("$.data.breadId").doesNotExist())
@@ -91,11 +92,11 @@ class BreadRecordControllerContractTest {
 
         ArgumentCaptor<CreateBreadRecordRequest> requestCaptor =
                 ArgumentCaptor.forClass(CreateBreadRecordRequest.class);
-        verify(breadRecordComplexService).createBreadRecord(eq(DUMMY_USER_ID), requestCaptor.capture());
+        verify(breadRecordComplexService).createBreadRecord(eq(AUTHENTICATED_USER_ID), requestCaptor.capture());
 
         CreateBreadRecordRequest request = requestCaptor.getValue();
         assertEquals(breadId, request.getBreadId());
-        assertEquals("르뺑블루 성수점", request.getShopName());
+        assertEquals("루트브레드 성수점", request.getShopName());
         assertEquals(LocalDate.of(2026, 3, 14), request.getEatenDate());
     }
 
@@ -104,10 +105,11 @@ class BreadRecordControllerContractTest {
         UUID breadId = UUID.fromString("c1d2e3f4-a5b6-7890-cdef-ab0123456789");
         BreadRecordCreateResponse response = createResponse(breadId, BreadType.BAGEL, true);
 
-        when(breadRecordComplexService.createNewBreadRecord(eq(DUMMY_USER_ID), any(CreateNewBreadRecordRequest.class)))
+        when(breadRecordComplexService.createNewBreadRecord(eq(AUTHENTICATED_USER_ID), any(CreateNewBreadRecordRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(multipart("/breads/new")
+                        .requestAttr(AuthRequestAttributes.USER_ID, AUTHENTICATED_USER_ID)
                         .file(new MockMultipartFile(
                                 "photo",
                                 "bagel.webp",
@@ -116,10 +118,10 @@ class BreadRecordControllerContractTest {
                         ))
                         .param("name", "플레인 베이글")
                         .param("bread_type", "BAGEL")
-                        .param("shop_name", "베이글샵")
+                        .param("shop_name", "베이글집")
                         .param("eaten_date", "2026-03-15")
                         .param("rating", "4")
-                        .param("review", "쫄깃했어요."))
+                        .param("review", "쫀득했어요"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.bread_id").value(breadId.toString()))
@@ -129,12 +131,12 @@ class BreadRecordControllerContractTest {
 
         ArgumentCaptor<CreateNewBreadRecordRequest> requestCaptor =
                 ArgumentCaptor.forClass(CreateNewBreadRecordRequest.class);
-        verify(breadRecordComplexService).createNewBreadRecord(eq(DUMMY_USER_ID), requestCaptor.capture());
+        verify(breadRecordComplexService).createNewBreadRecord(eq(AUTHENTICATED_USER_ID), requestCaptor.capture());
 
         CreateNewBreadRecordRequest request = requestCaptor.getValue();
         assertEquals("플레인 베이글", request.getName());
         assertEquals(BreadType.BAGEL, request.getBreadType());
-        assertEquals("베이글샵", request.getShopName());
+        assertEquals("베이글집", request.getShopName());
         assertEquals(LocalDate.of(2026, 3, 15), request.getEatenDate());
     }
 
@@ -142,9 +144,10 @@ class BreadRecordControllerContractTest {
     void getBreadRecordReturnsSpecResponseWithSnakeCaseFields() throws Exception {
         BreadRecordDetailResponse response = createDetailResponse();
 
-        when(breadRecordComplexService.getBreadRecord(DUMMY_USER_ID, RECORD_ID)).thenReturn(response);
+        when(breadRecordComplexService.getBreadRecord(AUTHENTICATED_USER_ID, RECORD_ID)).thenReturn(response);
 
-        mockMvc.perform(get("/breads/{recordId}", RECORD_ID))
+        mockMvc.perform(get("/breads/{recordId}", RECORD_ID)
+                        .requestAttr(AuthRequestAttributes.USER_ID, AUTHENTICATED_USER_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(RECORD_ID.toString()))
@@ -156,25 +159,26 @@ class BreadRecordControllerContractTest {
                 .andExpect(jsonPath("$.data.image_url").value("https://cdn.bread-diary.app/breads/croissant.webp"))
                 .andExpect(jsonPath("$.data.photo_url").value("https://cdn.bread-diary.app/bread-photos/record.webp"))
                 .andExpect(jsonPath("$.data.photo_thumbnail_url").value("https://cdn.bread-diary.app/bread-photos/record_thumb.webp"))
-                .andExpect(jsonPath("$.data.shop_name").value("르뺑블루 성수점"))
+                .andExpect(jsonPath("$.data.shop_name").value("루트브레드 성수점"))
                 .andExpect(jsonPath("$.data.eaten_date").value("2026-03-14"))
                 .andExpect(jsonPath("$.data.rating").value(5))
-                .andExpect(jsonPath("$.data.review").value("겉은 바삭하고 안은 촉촉해서 완벽했어요."))
+                .andExpect(jsonPath("$.data.review").value("겉은 바삭하고 속이 촉촉해서 만족했어요"))
                 .andExpect(jsonPath("$.data.created_at").value("2026-03-14T09:30:00"))
                 .andExpect(jsonPath("$.data.updated_at").value("2026-03-14T10:15:00"))
                 .andExpect(jsonPath("$.data.breadId").doesNotExist());
 
-        verify(breadRecordComplexService).getBreadRecord(DUMMY_USER_ID, RECORD_ID);
+        verify(breadRecordComplexService).getBreadRecord(AUTHENTICATED_USER_ID, RECORD_ID);
     }
 
     @Test
     void updateBreadRecordBindsSnakeCaseMultipartFields() throws Exception {
         BreadRecordDetailResponse response = createDetailResponse();
 
-        when(breadRecordComplexService.updateBreadRecord(eq(DUMMY_USER_ID), eq(RECORD_ID), any(UpdateBreadRecordRequest.class)))
+        when(breadRecordComplexService.updateBreadRecord(eq(AUTHENTICATED_USER_ID), eq(RECORD_ID), any(UpdateBreadRecordRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(multipart("/breads/{recordId}", RECORD_ID)
+                        .requestAttr(AuthRequestAttributes.USER_ID, AUTHENTICATED_USER_ID)
                         .file(new MockMultipartFile(
                                 "photo",
                                 "croissant.webp",
@@ -197,7 +201,7 @@ class BreadRecordControllerContractTest {
 
         ArgumentCaptor<UpdateBreadRecordRequest> requestCaptor =
                 ArgumentCaptor.forClass(UpdateBreadRecordRequest.class);
-        verify(breadRecordComplexService).updateBreadRecord(eq(DUMMY_USER_ID), eq(RECORD_ID), requestCaptor.capture());
+        verify(breadRecordComplexService).updateBreadRecord(eq(AUTHENTICATED_USER_ID), eq(RECORD_ID), requestCaptor.capture());
 
         UpdateBreadRecordRequest request = requestCaptor.getValue();
         assertEquals("", request.getShopName());
@@ -208,16 +212,17 @@ class BreadRecordControllerContractTest {
 
     @Test
     void deleteBreadRecordReturnsStickerRemoved() throws Exception {
-        when(breadRecordComplexService.deleteBreadRecord(DUMMY_USER_ID, RECORD_ID))
+        when(breadRecordComplexService.deleteBreadRecord(AUTHENTICATED_USER_ID, RECORD_ID))
                 .thenReturn(new BreadRecordDeleteResponse(true));
 
-        mockMvc.perform(delete("/breads/{recordId}", RECORD_ID))
+        mockMvc.perform(delete("/breads/{recordId}", RECORD_ID)
+                        .requestAttr(AuthRequestAttributes.USER_ID, AUTHENTICATED_USER_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.sticker_removed").value(true))
                 .andExpect(jsonPath("$.data.stickerRemoved").doesNotExist());
 
-        verify(breadRecordComplexService).deleteBreadRecord(DUMMY_USER_ID, RECORD_ID);
+        verify(breadRecordComplexService).deleteBreadRecord(AUTHENTICATED_USER_ID, RECORD_ID);
     }
 
     private BreadRecordCreateResponse createResponse(UUID breadId, BreadType breadType, boolean isFirstRecord) {
@@ -230,10 +235,10 @@ class BreadRecordControllerContractTest {
                 "크루아상",
                 breadType,
                 "https://cdn.bread-diary.app/breads/croissant.webp",
-                "르뺑블루 성수점",
+                "루트브레드 성수점",
                 LocalDate.of(2026, 3, 14),
                 5,
-                "겉은 바삭하고 안은 촉촉해서 완벽했어요.",
+                "겉은 바삭하고 속이 촉촉해서 만족했어요",
                 isFirstRecord,
                 LocalDateTime.of(2026, 3, 14, 9, 30)
         );
@@ -250,10 +255,10 @@ class BreadRecordControllerContractTest {
                 "https://cdn.bread-diary.app/breads/croissant.webp",
                 "https://cdn.bread-diary.app/bread-photos/record.webp",
                 "https://cdn.bread-diary.app/bread-photos/record_thumb.webp",
-                "르뺑블루 성수점",
+                "루트브레드 성수점",
                 LocalDate.of(2026, 3, 14),
                 5,
-                "겉은 바삭하고 안은 촉촉해서 완벽했어요.",
+                "겉은 바삭하고 속이 촉촉해서 만족했어요",
                 LocalDateTime.of(2026, 3, 14, 9, 30),
                 LocalDateTime.of(2026, 3, 14, 10, 15)
         );
