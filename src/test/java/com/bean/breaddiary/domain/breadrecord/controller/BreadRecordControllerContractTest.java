@@ -9,18 +9,17 @@ import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDeleteResp
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDetailResponse;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordComplexService;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,7 +51,7 @@ class BreadRecordControllerContractTest {
         breadRecordComplexService = mock(BreadRecordComplexService.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new BreadRecordController(breadRecordComplexService))
-                .setMessageConverters(new MappingJackson2HttpMessageConverter(snakeCaseObjectMapper()))
+                .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
 
@@ -264,10 +263,10 @@ class BreadRecordControllerContractTest {
         );
     }
 
-    private ObjectMapper snakeCaseObjectMapper() {
-        return new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+    private JsonMapper snakeCaseObjectMapper() {
+        return JsonMapper.builder()
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                .build();
     }
 }
