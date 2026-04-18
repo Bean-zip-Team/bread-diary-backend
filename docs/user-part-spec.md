@@ -1,139 +1,64 @@
-# User Part Spec for Codex
+# User/Auth Part Spec
 
-## 목적
+## 1. User 도메인 목적
+- 현재 사용자 조회
+- 토스 로그인 기반 사용자 식별
+- 슬라이딩 세션 기반 토큰 재발급
+- 회원탈퇴 및 토스 연결 해제 처리
 
-현재 Bread Diary 백엔드에서 user 파트를 단계적으로 구현한다.
-이 프로젝트는 신규 스캐폴드가 아니라 `bread`, `breadrecord` 도메인이 이미 구현된 상태다.
-새 기능은 반드시 기존 코드 스타일을 존중해 최소 수정 방식으로 추가한다.
+## 2. User 엔티티 필드
+- id
+- tossUserKey
+- nickname
+- email
+- profileImageUrl
+- bio
+- createdAt
+- updatedAt
 
-## 현재 프로젝트 전제
+## 3. 인증 정책
+- Access Token: 1일
+- Refresh Token: 30일
+- 인증 방식: Sliding Session
+- Access 만료 시 Refresh 로 재발급
+- Refresh 재발급 시 Access / Refresh 모두 rotation
+- 이전 Refresh Token 즉시 무효화
+- 동시성 충돌 방지 필요
 
-- base package: `com.bean.breaddiary`
-- 응답은 `global.common.ApiResponse` 래퍼 사용
-- 현재 사용자 식별은 `X-USER-ID` 헤더 기반 임시 처리
-- 테스트는 snake_case JSON 응답을 기대할 가능성이 높음
-- 기존 create/update API는 `multipart/form-data` + `@ModelAttribute`
-- Swagger와 사용자 메시지는 한국어 톤 유지
-- `BreadRecord`는 `deletedAt` 기반 soft delete 사용
+## 4. 현재 사용자 조회
+- GET /users/me
+- auth interceptor 기반 사용자 식별
+- 응답: 프로필 + 통계(total_records, unique_shops, avg_rating)
 
-## 현재 진행 상태
+## 5. 회원탈퇴 정책
+### 앱 내부 탈퇴
+- 서버가 토스 연결 끊기 요청을 보낸다.
+- 토스 API 호출이 성공하면 콜백을 기다리지 않고 로컬 사용자 데이터를 즉시 완전 삭제한다.
+- 사용자 세션 / refresh token 정보도 함께 정리한다.
 
-### 완료
-- `feat/25-user-domain`
-- user 도메인 최소 뼈대 추가
-  - `domain.user.entity.User`
-  - `domain.user.repository.UserRepository`
-  - `domain.user.dto.response.UserMeResponse`
-  - `domain.user.dto.response.UserStatsResponse`
+### 토스 웹훅 탈퇴/연결 끊기
+- 엔드포인트: POST /auth/webhook/toss-unlink
+- 헤더: x-toss-webhook-secret
+- body: { userKey, eventType }
 
-### 다음 작업
-1. `feat/26-user-profile-service`
-2. `feat/27-user-profile-api`
-3. `test/28-user-profile-api`
-4. `feat/29-user-withdrawal`
+처리 정책
+- UNLINK: 토큰/세션만 초기화하고 사용자 데이터는 유지한다.
+- WITHDRAWAL_TERMS: 사용자 데이터 완전 삭제
+- WITHDRAWAL_TOSS: 사용자 데이터 완전 삭제
 
-## 이번 user 파트 범위
+## 6. 웹훅 인증
+- Toss 콘솔에 웹훅 URL 등록
+- x-toss-webhook-secret 헤더 값을 서버의 TOSS_WEBHOOK_SECRET 환경변수와 비교
+- body 에서 userKey, eventType 추출
+- 공식 이벤트 타입은 UNLINK | WITHDRAWAL_TERMS | WITHDRAWAL_TOSS
 
-### 1단계
-user 도메인 기본 구조 추가
-
-- `domain.user.entity.User`
-- `domain.user.repository.UserRepository`
-- `domain.user.dto.response.UserMeResponse`
-- `domain.user.dto.response.UserStatsResponse`
-
-### 2단계
-현재 사용자 정보 및 통계 조회 서비스 구현
-
-통계 항목:
-- `total_records`
-- `unique_shops`
-- `avg_rating`
-
-집계 시 조건:
-- soft delete 된 bread record 제외
-- `shopName`이 null 또는 blank인 값 처리 기준을 코드에서 명확히 통일
-
-### 3단계
-현재 사용자 정보 조회 API 구현
-
-엔드포인트:
-- `GET /users/me`
-
-인증/식별:
-- `X-USER-ID` 헤더 사용
-
-응답 예시:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "nickname": "빵순이",
-    "email": "bread@toss.im",
-    "profile_image_url": "https://cdn.breaddex.app/profiles/550e8400.webp",
-    "bio": null,
-    "stats": {
-      "total_records": 42,
-      "unique_shops": 18,
-      "avg_rating": 4.2
-    },
-    "created_at": "2026-04-01T00:00:00Z"
-  }
-}
-```
-
-### 4단계
-현재 사용자 정보 조회 검증
-
-검증 대상:
-- `GET /users/me` 정상 조회
-- `X-USER-ID` 헤더 누락 또는 잘못된 형식 처리
-- `ApiResponse` 구조 유지
-- snake_case 응답 필드 유지
-- 통계 필드 직렬화 확인
-
-### 5단계
-회원탈퇴 구현
-
-엔드포인트:
-- `DELETE /users/me`
-
-권장 정책:
-- `User`는 soft delete로 처리한다.
-- `deletedAt` 필드를 추가한다.
-- 탈퇴 시 해당 사용자의 `BreadRecord`도 soft delete 처리하는 방향을 우선 검토한다.
-- 기존 인증 체계를 새로 만들지 않고 현재 `X-USER-ID` 흐름을 유지한다.
-
-응답 예시:
-```json
-{
-  "success": true,
-  "data": null
-}
-```
-
-## 구현 원칙
-
-- 기존 `bread`, `breadrecord` 구현을 먼저 읽고 같은 스타일로 작업한다.
-- 없는 구조를 새로 크게 만들지 않는다.
-- 새로운 인증 체계나 전역 예외 체계를 임의로 도입하지 않는다.
-- controller는 얇게, 서비스는 명확하게 유지한다.
-- 필요 이상으로 리팩터링하지 않는다.
-- DTO, 엔티티, 리포지토리 네이밍은 기존 프로젝트 스타일에 맞춘다.
-- `User`에 soft delete를 도입하면, 이후 조회 로직도 활성 사용자 기준으로 일관되게 맞춘다.
-
-## 브랜치 순서
-
-1. `feat/25-user-domain` ✅
-2. `feat/26-user-profile-service`
-3. `feat/27-user-profile-api`
-4. `test/28-user-profile-api`
-5. `feat/29-user-withdrawal`
-
-## 각 단계 종료 시 Codex가 정리해야 할 것
-
-- 이번 브랜치 생성 파일
-- 이번 브랜치 수정 파일
-- 다음 브랜치가 먼저 읽어야 할 파일
-- 남은 TODO
+## 7. 구현 순서
+1. user domain
+2. auth session domain
+3. auth login
+4. auth refresh logout
+5. auth interceptor
+6. user profile api
+7. user profile test
+8. user withdrawal
+9. auth concurrency test
