@@ -5,6 +5,7 @@ import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStatsProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCountProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.UserStatsProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -72,4 +73,17 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
             @Param("userId") UUID userId,
             @Param("breadIds") List<UUID> breadIds
     );
+
+    @Query("""
+            select count(br) as totalRecords,
+                   count(distinct case
+                       when br.shopName is not null and trim(br.shopName) <> '' then trim(br.shopName)
+                       else null
+                   end) as uniqueShops,
+                   avg(br.rating) as avgRating
+            from BreadRecord br
+            where br.userId = :userId
+              and br.deletedAt is null
+            """)
+    UserStatsProjection findUserStatsByUserId(@Param("userId") UUID userId);
 }
