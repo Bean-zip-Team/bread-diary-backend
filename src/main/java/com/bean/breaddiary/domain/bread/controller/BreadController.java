@@ -2,6 +2,7 @@ package com.bean.breaddiary.domain.bread.controller;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.common.ApiResponse;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -66,6 +68,34 @@ public class BreadController {
                 search,
                 cursor,
                 limit,
+                userId
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(
+            summary = "빵 프로필 조회",
+            description = "카탈로그 빵의 마스터 정보와 현재 유저의 해당 빵 기록 통계 및 기록 목록을 조회합니다."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "빵 프로필 조회 성공",
+                    content = @Content(schema = @Schema(implementation = BreadProfileResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "빵 카탈로그를 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @GetMapping("/catalog/{breadId}")
+    public ResponseEntity<ApiResponse<BreadProfileResponse>> getBreadProfile(
+            @Parameter(description = "카탈로그 빵 ID", example = "b0e1f2a3-c4d5-6789-abcd-ef0123456789")
+            @PathVariable UUID breadId,
+            @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
+            @RequestHeader(value = "X-USER-ID", required = false) UUID userId
+    ) {
+        BreadProfileResponse response = breadComplexService.getBreadProfile(
+                breadId,
                 userId
         );
 

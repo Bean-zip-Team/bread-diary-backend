@@ -1,6 +1,8 @@
 package com.bean.breaddiary.domain.breadrecord.dto.mapper;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStatsProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
@@ -12,7 +14,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -97,5 +102,49 @@ public interface BreadRecordMapper {
                         BreadRecordCatalogStats::getBreadId,
                         stats -> stats
                 ));
+    }
+
+    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    BreadProfileRecordResponse mapToProfileRecord(BreadRecord breadRecord);
+
+    default List<BreadProfileRecordResponse> mapToProfileRecords(List<BreadRecord> breadRecords) {
+        return breadRecords.stream()
+                .map(this::mapToProfileRecord)
+                .toList();
+    }
+
+    default BreadProfileStatsResponse mapToProfileStats(List<BreadRecord> breadRecords) {
+        if (breadRecords.isEmpty()) {
+            return new BreadProfileStatsResponse(
+                    0L,
+                    null,
+                    null
+            );
+        }
+
+        double avgRating = breadRecords.stream()
+                .mapToInt(BreadRecord::getRating)
+                .average()
+                .orElse(0);
+        LocalDateTime firstRecordedAt = breadRecords.stream()
+                .map(BreadRecord::getCreatedAt)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+
+        return new BreadProfileStatsResponse(
+                (long) breadRecords.size(),
+                roundRating(avgRating),
+                firstRecordedAt
+        );
+    }
+
+    default Double roundRating(Double rating) {
+        if (rating == null) {
+            return null;
+        }
+
+        return BigDecimal.valueOf(rating)
+                .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }

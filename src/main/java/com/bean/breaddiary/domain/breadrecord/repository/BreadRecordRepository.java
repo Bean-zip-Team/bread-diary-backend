@@ -16,6 +16,7 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
 
     List<BreadRecord> findAllByUserId(UUID userId);
     List<BreadRecord> findAllByUserIdAndBread(UUID userId, Bread bread);
+    List<BreadRecord> findAllByUserIdAndBreadAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId, Bread bread);
     long countByUserIdAndBread(UUID userId, Bread bread);
     boolean existsByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
 

@@ -2,9 +2,13 @@ package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
+import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -76,6 +80,22 @@ public class BreadComplexService {
                 nextCursor,
                 hasMore,
                 filteredBreads.size()
+        );
+    }
+
+    public BreadProfileResponse getBreadProfile(UUID breadId, UUID userId) {
+        Bread bread = breadService.getBreadById(breadId);
+        List<BreadRecord> records = breadRecordService.findActiveRecordsByUserAndBread(
+                userId,
+                bread
+        );
+        BreadProfileStatsResponse stats = breadRecordService.createProfileStats(records);
+        List<BreadProfileRecordResponse> recordResponses = breadRecordService.createProfileRecordResponses(records);
+
+        return breadService.createProfileResponse(
+                bread,
+                stats,
+                recordResponses
         );
     }
 

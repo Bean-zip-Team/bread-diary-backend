@@ -1,6 +1,8 @@
 package com.bean.breaddiary.domain.breadrecord.service;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.mapper.BreadRecordMapper;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
@@ -56,6 +58,25 @@ public class BreadRecordService {
                 breadRecordRepository.findCatalogStatsByBreadIds(userId, breadIds),
                 breadRecordRepository.findLatestPhotoUrlsByBreadIds(userId, breadIds)
         );
+    }
+
+    public List<BreadRecord> findActiveRecordsByUserAndBread(UUID userId, Bread bread) {
+        if (userId == null || bread == null) {
+            return Collections.emptyList();
+        }
+
+        return breadRecordRepository.findAllByUserIdAndBreadAndDeletedAtIsNullOrderByCreatedAtDesc(
+                userId,
+                bread
+        );
+    }
+
+    public BreadProfileStatsResponse createProfileStats(List<BreadRecord> breadRecords) {
+        return breadRecordMapper.mapToProfileStats(breadRecords);
+    }
+
+    public List<BreadProfileRecordResponse> createProfileRecordResponses(List<BreadRecord> breadRecords) {
+        return breadRecordMapper.mapToProfileRecords(breadRecords);
     }
 
     @Transactional

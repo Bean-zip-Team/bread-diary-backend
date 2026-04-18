@@ -2,9 +2,13 @@ package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
+import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -184,6 +188,48 @@ class BreadComplexServiceTest {
                 false,
                 1L
         );
+    }
+
+    @Test
+    void getBreadProfileCombinesBreadAndUserRecords() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        Bread bread = createBread(
+                breadId,
+                6,
+                "크루아상",
+                BreadType.PASTRY
+        );
+        BreadRecord record = BreadRecord.builder()
+                .userId(userId)
+                .bread(bread)
+                .photoUrl("https://cdn.bread-diary.app/bread-photos/record.webp")
+                .rating(5)
+                .eatenDate(LocalDate.of(2026, 3, 14))
+                .build();
+        BreadProfileStatsResponse stats = new BreadProfileStatsResponse(
+                1L,
+                5.0,
+                LocalDate.of(2026, 3, 14).atStartOfDay()
+        );
+        List<BreadProfileRecordResponse> recordResponses = List.of(new BreadProfileRecordResponse());
+        BreadProfileResponse expected = new BreadProfileResponse();
+
+        when(breadService.getBreadById(breadId)).thenReturn(bread);
+        when(breadRecordService.findActiveRecordsByUserAndBread(userId, bread))
+                .thenReturn(List.of(record));
+        when(breadRecordService.createProfileStats(List.of(record))).thenReturn(stats);
+        when(breadRecordService.createProfileRecordResponses(List.of(record))).thenReturn(recordResponses);
+        when(breadService.createProfileResponse(bread, stats, recordResponses)).thenReturn(expected);
+
+        BreadProfileResponse actual = breadComplexService.getBreadProfile(breadId, userId);
+
+        assertSame(expected, actual);
+        verify(breadService).getBreadById(breadId);
+        verify(breadRecordService).findActiveRecordsByUserAndBread(userId, bread);
+        verify(breadRecordService).createProfileStats(List.of(record));
+        verify(breadRecordService).createProfileRecordResponses(List.of(record));
+        verify(breadService).createProfileResponse(bread, stats, recordResponses);
     }
 
     private Bread createBread(UUID id, Integer stickerNumber, String name, BreadType breadType) {
