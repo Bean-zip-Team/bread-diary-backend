@@ -103,6 +103,13 @@ public class BreadService {
     }
 
     @Transactional
+    public void deleteIfUserCreated(Bread bread) {
+        if (bread != null && bread.isUserCreated()) {
+            breadRepository.delete(bread);
+        }
+    }
+
+    @Transactional
     public Bread createUserBread(CreateNewBreadRecordRequest request, UUID userId) {
         validateBreadNameNotDuplicated(request.getName());
 

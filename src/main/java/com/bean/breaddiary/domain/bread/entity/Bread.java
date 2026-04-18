@@ -55,4 +55,7 @@ public class Bread {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    public boolean isUserCreated() {
+        return createdBy != null;
+    }
 }
