@@ -55,4 +55,3 @@ coverage/
 
 docker-compose.override.yml
 *.local.yml
-.omx/
