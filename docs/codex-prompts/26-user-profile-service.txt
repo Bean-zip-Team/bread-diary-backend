@@ -1,0 +1,44 @@
+현재 작업 브랜치는 feat/26-user-profile-service 이다.
+이 작업은 feat/25-user-domain 이 반영된 상태를 기준으로 한다.
+기존 bread / breadrecord 구현, 직전 브랜치의 user 관련 파일, AGENTS.md, docs/user-part-spec.md를 먼저 읽고 같은 스타일로 최소 수정 방식으로 이어서 작업해라.
+
+[작업 전 필수]
+1. 이전 브랜치에서 추가된 user 관련 파일을 먼저 읽고 요약해라.
+2. breadrecord repository / service / projection 구조를 먼저 확인해라.
+3. deletedAt soft delete 반영 방식이 있는지 먼저 찾아라.
+4. 기존 서비스 계층에서 유사한 조회 유스케이스가 어떻게 구현되었는지 먼저 확인해라.
+
+[이번 브랜치 목표]
+현재 사용자 정보 및 통계를 조회하는 서비스 로직을 구현한다.
+
+[이번 브랜치에서 구현할 범위]
+- UserService 구현
+- 필요 시 UserComplexService 도입 여부 판단
+- X-USER-ID로 받은 userId 기반 사용자 조회 로직에 사용할 서비스 메서드 정의
+- 통계 집계 로직
+  - total_records
+  - unique_shops
+  - avg_rating
+- UserMeResponse 조립 로직
+- breadrecord repository에 필요한 조회 메서드 추가
+
+[구현 원칙]
+- 기존 service / complexService 패턴이 실제로 사용 중이면 그 스타일을 따르고 그렇지 않으면 무리해서 새 레이어를 만들지 마라.
+- breadrecord 집계는 soft delete를 반영해 활성 기록만 대상으로 한다.
+- 기존 repository 쿼리 스타일이 derived query 인지 JPQL 인지 projection 인지 먼저 확인하고 같은 방식으로 구현해라.
+- 예외 구조를 새로 만들지 말고 현재 흐름을 존중해라.
+- 아직 controller와 swagger 작업은 최소화한다.
+- DTO 필드명은 응답 스펙과 기존 직렬화 기대를 해치지 않도록 주의해라.
+
+[출력 형식]
+1. 참고한 기존 파일 / 패키지 요약
+2. 생성 / 수정할 파일 목록
+3. 각 파일의 전체 코드
+4. stats 계산 방식 설명
+5. 다음 브랜치(controller 연결)에서 참고할 포인트
+
+작업 종료 전에 반드시 아래를 출력해라.
+1. 이번 브랜치에서 생성한 파일
+2. 이번 브랜치에서 수정한 파일
+3. 다음 브랜치 작업자가 먼저 읽어야 할 파일 목록
+4. 다음 브랜치에서 이어서 해야 할 핵심 TODO

@@ -1,0 +1,60 @@
+현재 작업 브랜치는 feat/27-user-profile-api 이다.
+이 작업은 feat/26-user-profile-service 가 반영된 상태를 기준으로 한다.
+기존 bread / breadrecord 구현, 직전 브랜치 결과, AGENTS.md, docs/user-part-spec.md를 먼저 읽고 같은 스타일로 최소 수정 방식으로 이어서 작업해라.
+
+[작업 전 필수]
+1. 이전 브랜치에서 만든 user 엔티티, dto, service 파일을 먼저 읽고 요약해라.
+2. 기존 bread / breadrecord controller의 Swagger 톤과 응답 구조를 확인해라.
+3. ApiResponse 사용 패턴을 확인해라.
+4. X-USER-ID 헤더를 받는 현재 컨트롤러 스타일이 있는지 먼저 찾아라.
+
+[이번 브랜치 목표]
+마이페이지에서 사용할 현재 사용자 정보 조회 API를 구현한다.
+
+[이번 브랜치에서 구현할 범위]
+- UserController 생성 또는 완성
+- GET /users/me 엔드포인트 추가
+- X-USER-ID 헤더를 받아 현재 사용자 식별
+- UserService 호출
+- ApiResponse 래퍼로 응답 반환
+- Swagger / OpenAPI 설명 추가
+- 한국어 설명 유지
+
+[구현 원칙]
+- 새로운 인증 체계를 만들지 마라.
+- 새로운 전역 설정을 추가하지 마라.
+- snake_case 기대를 깨뜨릴 수 있는 변경을 피하라.
+- controller는 얇게 유지하고 비즈니스 로직은 service에 둔다.
+- 헤더 처리 방식은 기존 컨트롤러의 스타일과 최대한 맞춰라.
+- 기존 한국어 메시지 / Swagger 톤을 유지해라.
+
+[응답 목표 예시]
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "nickname": "...",
+    "email": "...",
+    "profile_image_url": "...",
+    "bio": "...",
+    "stats": {
+      "total_records": 0,
+      "unique_shops": 0,
+      "avg_rating": 0.0
+    },
+    "created_at": "..."
+  }
+}
+
+[출력 형식]
+1. 참고한 기존 controller / swagger 관련 파일
+2. 생성 / 수정할 파일 목록
+3. 각 파일의 전체 코드
+4. 요청 / 응답 예시
+5. 다음 브랜치에서 테스트할 포인트
+
+작업 종료 전에 반드시 아래를 출력해라.
+1. 이번 브랜치에서 생성한 파일
+2. 이번 브랜치에서 수정한 파일
+3. 다음 브랜치 작업자가 먼저 읽어야 할 파일 목록
+4. 다음 브랜치에서 이어서 해야 할 핵심 TODO
