@@ -34,3 +34,11 @@
 - `docs/codex-prompts/26-user-profile-service.txt`
 - `docs/codex-prompts/27-user-profile-api.txt`
 - `docs/codex-prompts/28-user-profile-test.txt`
+- `docs/codex-prompts/29-user-withdrawal.txt`
+
+## 현재 기준 다음 우선순위
+
+1. `feat/26-user-profile-service`
+2. `feat/27-user-profile-api`
+3. `test/28-user-profile-api`
+4. `feat/29-user-withdrawal`

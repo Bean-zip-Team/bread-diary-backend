@@ -37,6 +37,12 @@
       "target_path": "docs/codex-prompts/28-user-profile-test.txt",
       "required": false,
       "purpose": "Prompt for test/28-user-profile-api"
+    },
+    {
+      "source_path": "prompts/29-user-withdrawal.txt",
+      "target_path": "docs/codex-prompts/29-user-withdrawal.txt",
+      "required": false,
+      "purpose": "Prompt for feat/29-user-withdrawal"
     }
   ]
 }

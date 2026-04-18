@@ -17,6 +17,7 @@
 - ApiResponse 구조 검증
 - snake_case 필드 검증
 - X-USER-ID 헤더 전달 케이스 검증
+- 헤더 누락 / 잘못된 UUID 형식 같은 경계 케이스 검증
 - 누락 import / wiring / 직렬화 리스크 점검
 
 [구현 원칙]
