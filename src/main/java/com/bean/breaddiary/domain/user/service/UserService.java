@@ -31,7 +31,7 @@ public class UserService {
     }
 
     public User getUserById(UUID userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "해당 사용자를 찾을 수 없습니다."
