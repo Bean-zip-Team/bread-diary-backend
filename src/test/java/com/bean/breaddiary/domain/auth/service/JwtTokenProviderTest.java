@@ -28,8 +28,8 @@ class JwtTokenProviderTest {
     void createAndParseAccessTokenContainsRequiredClaims() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
         UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
-        LocalDateTime issuedAt = LocalDateTime.of(2026, 4, 18, 10, 0);
-        LocalDateTime expiresAt = LocalDateTime.of(2026, 4, 19, 10, 0);
+        LocalDateTime issuedAt = LocalDateTime.of(2026, 4, 19, 10, 0);
+        LocalDateTime expiresAt = LocalDateTime.of(2026, 4, 20, 10, 0);
 
         String token = jwtTokenProvider.createAccessToken(
                 userId,
@@ -51,8 +51,8 @@ class JwtTokenProviderTest {
     void createAndParseRefreshTokenContainsJti() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
         UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440003");
-        LocalDateTime issuedAt = LocalDateTime.of(2026, 4, 18, 10, 0);
-        LocalDateTime expiresAt = LocalDateTime.of(2026, 5, 18, 10, 0);
+        LocalDateTime issuedAt = LocalDateTime.of(2026, 4, 19, 10, 0);
+        LocalDateTime expiresAt = LocalDateTime.of(2026, 5, 19, 10, 0);
 
         String token = jwtTokenProvider.createRefreshToken(
                 userId,
@@ -67,6 +67,6 @@ class JwtTokenProviderTest {
         assertEquals(sessionId, claims.sessionId());
         assertEquals("refresh", claims.type());
         assertEquals("refresh-jti", claims.jti());
-        assertTrue(claims.isExpiredAt(LocalDateTime.of(2026, 5, 18, 10, 0)));
+        assertTrue(claims.isExpiredAt(LocalDateTime.of(2026, 5, 19, 10, 0)));
     }
 }

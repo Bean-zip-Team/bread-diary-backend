@@ -13,7 +13,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "로그인 토큰 응답")
+@Schema(description = "인증 토큰 응답")
 public class AuthTokenResponse {
 
     @Schema(description = "사용자 ID", example = "550e8400-e29b-41d4-a716-446655440000")
@@ -28,12 +28,12 @@ public class AuthTokenResponse {
     @Schema(description = "토큰 타입", example = "Bearer")
     private String tokenType;
 
-    @Schema(description = "Access Token 만료 시각", example = "2026-04-19T10:00:00")
+    @Schema(description = "Access Token 만료 시각", example = "2026-04-20T10:00:00")
     private LocalDateTime accessTokenExpiresAt;
 
-    @Schema(description = "Refresh Token 만료 시각", example = "2026-05-18T10:00:00")
+    @Schema(description = "Refresh Token 만료 시각", example = "2026-05-19T10:00:00")
     private LocalDateTime refreshTokenExpiresAt;
 
-    @Schema(description = "신규 가입 여부", example = "true")
+    @Schema(description = "신규 가입 여부", example = "false")
     private boolean newUser;
 }

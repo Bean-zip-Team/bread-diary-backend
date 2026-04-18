@@ -67,10 +67,10 @@ public class JwtTokenProvider {
 
         String[] segments = splitToken(token);
         String unsignedToken = segments[0] + "." + segments[1];
-        String actualSignature = sign(unsignedToken);
+        String expectedSignature = sign(unsignedToken);
 
         if (!MessageDigest.isEqual(
-                actualSignature.getBytes(StandardCharsets.UTF_8),
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
                 segments[2].getBytes(StandardCharsets.UTF_8)
         )) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
@@ -145,6 +145,7 @@ public class JwtTokenProvider {
         if (segments.length != 3) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "토큰 형식이 올바르지 않습니다.");
         }
+
         return segments;
     }
 
@@ -164,7 +165,6 @@ public class JwtTokenProvider {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-
             return URL_ENCODER.encodeToString(
                     mac.doFinal(unsignedToken.getBytes(StandardCharsets.UTF_8))
             );
@@ -231,7 +231,7 @@ public class JwtTokenProvider {
             LocalDateTime expiresAt
     ) {
         public boolean isExpiredAt(LocalDateTime now) {
-            LocalDateTime targetTime = now == null ? LocalDateTime.now(ZoneOffset.UTC) : now;
+            LocalDateTime targetTime = now == null ? LocalDateTime.now() : now;
             return !expiresAt.isAfter(targetTime);
         }
     }

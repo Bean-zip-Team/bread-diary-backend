@@ -79,6 +79,14 @@ public class UserSession {
         return !isRevoked() && !isRefreshExpiredAt(now);
     }
 
+    public boolean matchesRefreshTokenHash(String refreshTokenHash) {
+        return this.refreshTokenHash != null && this.refreshTokenHash.equals(refreshTokenHash);
+    }
+
+    public boolean matchesCurrentJti(String currentJti) {
+        return this.currentJti != null && this.currentJti.equals(currentJti);
+    }
+
     public void rotateRefreshToken(
             String refreshTokenHash,
             String currentJti,
