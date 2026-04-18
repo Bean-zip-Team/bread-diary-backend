@@ -45,6 +45,14 @@ public class UserSessionService {
                 .filter(userSession -> !userSession.isRefreshExpiredAt(targetTime));
     }
 
+    public Optional<UserSession> findSession(UUID sessionId) {
+        return userSessionRepository.findByIdAndRevokedAtIsNull(sessionId);
+    }
+
+    public Optional<UserSession> findSessionForUpdate(UUID sessionId) {
+        return userSessionRepository.findByIdAndRevokedAtIsNullForUpdate(sessionId);
+    }
+
     public Optional<UserSession> findActiveSessionForUpdate(UUID sessionId, LocalDateTime now) {
         LocalDateTime targetTime = resolveTime(now);
 
