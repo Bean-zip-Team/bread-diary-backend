@@ -1,48 +1,79 @@
 {
-  "version": 1,
-  "description": "Target paths for Bread Diary Codex setup files",
+  "version": 2,
+  "description": "Bread Diary user/auth Codex prompt placement manifest",
+  "base_docs_path": "docs",
+  "prompt_folder": "docs/codex-prompts-user",
+  "spec_file": "docs/user-part-spec.md",
   "files": [
     {
-      "source_path": "AGENTS.md",
-      "target_path": "AGENTS.md",
+      "name": "README.md",
+      "target_path": "docs/codex-prompts-user/README.md",
+      "category": "guide",
       "required": true,
-      "purpose": "Repository-wide Codex instructions"
+      "purpose": "프롬프트 사용 순서 및 작업 규칙 안내"
     },
     {
-      "source_path": "docs/user-part-spec.md",
+      "name": "auth-session-domain.txt",
+      "target_path": "docs/codex-prompts-user/auth-session-domain.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "슬라이딩 세션 기반 인증 도메인 설계"
+    },
+    {
+      "name": "auth-login.txt",
+      "target_path": "docs/codex-prompts-user/auth-login.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "로그인 및 토큰 발급 구현"
+    },
+    {
+      "name": "auth-refresh-logout.txt",
+      "target_path": "docs/codex-prompts-user/auth-refresh-logout.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "토큰 재발급 및 로그아웃 구현"
+    },
+    {
+      "name": "auth-interceptor.txt",
+      "target_path": "docs/codex-prompts-user/auth-interceptor.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "시큐리티 없이 인터셉터 기반 인증 처리"
+    },
+    {
+      "name": "user-profile-api.txt",
+      "target_path": "docs/codex-prompts-user/user-profile-api.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "GET /users/me API 연결"
+    },
+    {
+      "name": "user-profile-test.txt",
+      "target_path": "docs/codex-prompts-user/user-profile-test.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "유저 프로필 API 테스트"
+    },
+    {
+      "name": "user-withdrawal.txt",
+      "target_path": "docs/codex-prompts-user/user-withdrawal.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "회원 탈퇴 처리"
+    },
+    {
+      "name": "auth-concurrency-test.txt",
+      "target_path": "docs/codex-prompts-user/auth-concurrency-test.txt",
+      "category": "prompt",
+      "required": true,
+      "purpose": "동시성 테스트 및 중복 재발급 방지 검증"
+    },
+    {
+      "name": "user-part-spec.md",
       "target_path": "docs/user-part-spec.md",
+      "category": "spec",
       "required": true,
-      "purpose": "User domain design/reference spec"
-    },
-    {
-      "source_path": "prompts/25-user-domain.txt",
-      "target_path": "docs/codex-prompts/25-user-domain.txt",
-      "required": false,
-      "purpose": "Prompt for feat/25-user-domain"
-    },
-    {
-      "source_path": "prompts/26-user-profile-service.txt",
-      "target_path": "docs/codex-prompts/26-user-profile-service.txt",
-      "required": false,
-      "purpose": "Prompt for feat/26-user-profile-service"
-    },
-    {
-      "source_path": "prompts/27-user-profile-api.txt",
-      "target_path": "docs/codex-prompts/27-user-profile-api.txt",
-      "required": false,
-      "purpose": "Prompt for feat/27-user-profile-api"
-    },
-    {
-      "source_path": "prompts/28-user-profile-test.txt",
-      "target_path": "docs/codex-prompts/28-user-profile-test.txt",
-      "required": false,
-      "purpose": "Prompt for test/28-user-profile-api"
-    },
-    {
-      "source_path": "prompts/29-user-withdrawal.txt",
-      "target_path": "docs/codex-prompts/29-user-withdrawal.txt",
-      "required": false,
-      "purpose": "Prompt for feat/29-user-withdrawal"
+      "purpose": "유저/인증 도메인 설계 문서"
     }
   ]
 }

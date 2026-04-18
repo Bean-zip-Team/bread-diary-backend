@@ -1,0 +1,70 @@
+현재 작업 브랜치는 feat/<issue-number>-auth-login 이다.
+이 작업은 feat/<issue-number>-auth-session-domain 이 반영된 상태를 기준으로 한다.
+
+기존 bread / breadrecord / user / auth 구현, AGENTS.md, docs/user-part-spec.md를 먼저 읽고 같은 스타일로 최소 수정 방식으로 이어서 작업해라.
+
+User 엔티티에 tossUserKey 저장을 반드시 포함한다.
+향후 unlink/withdrawal webhook 처리 시 tossUserKey 로 사용자를 찾는다.
+
+[작업 전 필수]
+1. 직전 브랜치에서 추가된 auth 세션 관련 파일을 먼저 읽고 요약해라.
+2. 현재 프로젝트에서 외부 API 연동 패턴이 있는지 먼저 확인해라.
+3. global 패키지(util/config/service) 재사용 가능 구조가 있는지 먼저 확인해라.
+4. User 엔티티 / UserRepository 에서 tossId, deletedAt 처리 상태를 먼저 확인해라.
+
+[이번 브랜치 목표]
+토스 OAuth 기반 로그인/회원가입과 JWT 발급 로직을 구현한다.
+
+[인증 정책]
+- Spring Security는 사용하지 않는다.
+- Access Token 만료 시간은 1일이다.
+- Refresh Token 만료 시간은 30일이다.
+- 로그인 성공 시 Access / Refresh Token을 함께 발급한다.
+- 세션은 UserSession 기준으로 생성한다.
+
+[이번 브랜치에서 구현할 범위]
+- JwtTokenProvider 또는 JwtUtil 구현
+  - access token 생성
+  - refresh token 생성
+  - 토큰 파싱에 필요한 최소 메서드
+- claim 설계
+  - sub = userId
+  - sid = sessionId
+  - type
+  - iat
+  - exp
+  - refresh token에는 jti 포함
+- AuthService 구현
+  - 토스 authorization code 검증 흐름
+  - 토스 사용자 정보 조회
+  - 기존 유저 조회 또는 신규 생성
+  - UserSession 생성
+  - refreshTokenHash 저장
+  - AuthTokenResponse 반환
+- AuthController 구현
+  - POST /auth/toss
+- 토스 연동용 client / service 초안 구현
+  - 실제 외부 호출은 현재 프로젝트 스타일에 맞춰 최소한으로 구현
+  - 환경값은 하드코딩하지 말고 config 또는 placeholder 기준으로 둔다.
+
+[구현 원칙]
+- refresh token은 저장 전에 hash 처리해라.
+- 신규 가입/기존 로그인 분기 시 deletedAt 처리 정책을 코드상 자연스럽게 반영해라.
+- 응답은 기존 ApiResponse 구조를 유지해라.
+- 아직 refresh / logout / interceptor는 이번 브랜치에서 과하게 열지 마라.
+- Swagger 설명은 필요한 최소 수준으로만 붙여라.
+
+[출력 형식]
+1. 참고한 기존 파일 / 패키지 요약
+2. 생성 / 수정한 파일 목록
+3. 파일별 핵심 변경 요약
+   - 어떤 파일을 왜 바꿨는지 1~3줄씩 간략하게
+4. 로그인 / 회원가입 흐름 설명
+5. 다음 브랜치(refresh, logout)에서 참고할 포인트
+
+작업 종료 전에 반드시 아래를 출력해라.
+1. 이번 브랜치에서 생성한 파일
+2. 이번 브랜치에서 수정한 파일
+3. 각 파일별 핵심 변경점 한 줄 요약
+4. 다음 브랜치 작업자가 먼저 읽어야 할 파일 목록
+5. 다음 브랜치에서 이어서 해야 할 핵심 TODO
