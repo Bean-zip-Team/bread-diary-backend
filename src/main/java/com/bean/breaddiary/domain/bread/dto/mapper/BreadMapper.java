@@ -7,6 +7,8 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadTypeItemResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadTypeListResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
@@ -141,18 +143,21 @@ public interface BreadMapper {
     );
 
     default String toBreadTypeLabel(BreadType breadType) {
-        if (breadType == null) {
-            return null;
-        }
+        return breadType == null ? null : breadType.getLabel();
+    }
 
-        return switch (breadType) {
-            case PASTRY -> "페이스트리";
-            case BREAD -> "식빵";
-            case DONUT -> "도넛";
-            case CAKE -> "케이크";
-            case BAGEL -> "베이글";
-            case TART -> "타르트";
-            case OTHER -> "기타";
-        };
+    default BreadTypeListResponse mapToBreadTypeListResponse(List<BreadType> breadTypes) {
+        List<BreadTypeItemResponse> items = breadTypes.stream()
+                .map(this::mapToBreadTypeItem)
+                .toList();
+
+        return new BreadTypeListResponse(items);
+    }
+
+    default BreadTypeItemResponse mapToBreadTypeItem(BreadType breadType) {
+        return new BreadTypeItemResponse(
+                breadType.name(),
+                breadType.getLabel()
+        );
     }
 }
