@@ -3,6 +3,9 @@ package com.bean.breaddiary.domain.bread.service;
 import com.bean.breaddiary.domain.bread.dto.mapper.BreadMapper;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
@@ -84,6 +87,18 @@ public class BreadService {
                 nextCursor,
                 hasMore,
                 totalCount
+        );
+    }
+
+    public BreadProfileResponse createProfileResponse(
+            Bread bread,
+            BreadProfileStatsResponse stats,
+            List<BreadProfileRecordResponse> records
+    ) {
+        return breadMapper.mapToProfileResponse(
+                bread,
+                stats,
+                records
         );
     }
 
