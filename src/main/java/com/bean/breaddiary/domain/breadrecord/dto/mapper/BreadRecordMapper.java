@@ -159,18 +159,6 @@ public interface BreadRecordMapper {
     }
 
     default String toBreadTypeLabel(com.bean.breaddiary.domain.bread.entity.BreadType breadType) {
-        if (breadType == null) {
-            return null;
-        }
-
-        return switch (breadType) {
-            case PASTRY -> "페이스트리";
-            case BREAD -> "식빵";
-            case DONUT -> "도넛";
-            case CAKE -> "케이크";
-            case BAGEL -> "베이글";
-            case TART -> "타르트";
-            case OTHER -> "기타";
-        };
+        return breadType == null ? null : breadType.getLabel();
     }
 }
