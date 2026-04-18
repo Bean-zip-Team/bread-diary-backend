@@ -49,7 +49,7 @@ class UserServiceTest {
                 .createdAt(LocalDateTime.of(2026, 4, 1, 0, 0))
                 .build();
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
         when(breadRecordRepository.findUserStatsByUserId(userId))
                 .thenReturn(createProjection(42L, 18L, 4.25));
 
@@ -63,7 +63,7 @@ class UserServiceTest {
         assertEquals(18L, actual.getStats().getUniqueShops());
         assertEquals(4.3, actual.getStats().getAvgRating());
 
-        verify(userRepository).findById(userId);
+        verify(userRepository).findByIdAndDeletedAtIsNull(userId);
         verify(breadRecordRepository).findUserStatsByUserId(userId);
     }
 
@@ -85,7 +85,7 @@ class UserServiceTest {
     void getUserByIdThrowsNotFoundWhenUserDoesNotExist() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
