@@ -99,6 +99,24 @@ class UserSessionServiceTest {
     }
 
     @Test
+    void findSessionForUpdateUsesLockedRepositoryMethod() {
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440012");
+        UserSession activeSession = createSession(
+                sessionId,
+                LocalDateTime.of(2026, 4, 28, 10, 0),
+                null
+        );
+
+        when(userSessionRepository.findByIdAndRevokedAtIsNullForUpdate(sessionId))
+                .thenReturn(Optional.of(activeSession));
+
+        Optional<UserSession> actual = userSessionService.findSessionForUpdate(sessionId);
+
+        assertTrue(actual.isPresent());
+        verify(userSessionRepository).findByIdAndRevokedAtIsNullForUpdate(sessionId);
+    }
+
+    @Test
     void rotateRefreshTokenUpdatesHashJtiAndRefreshExpiry() {
         LocalDateTime rotatedAt = LocalDateTime.of(2026, 4, 18, 10, 0);
         UserSession userSession = createSession(
