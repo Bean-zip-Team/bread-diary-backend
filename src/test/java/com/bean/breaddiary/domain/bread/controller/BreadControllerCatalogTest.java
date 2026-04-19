@@ -4,6 +4,7 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogItemResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
@@ -76,7 +77,7 @@ class BreadControllerCatalogTest {
                         .param("bread_type", "PASTRY")
                         .param("search", "크루")
                         .param("limit", "20")
-                        .header("X-USER-ID", userId.toString()))
+                        .requestAttr(AuthRequestAttributes.USER_ID, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.items[0].bread_id").value(breadId.toString()))

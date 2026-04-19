@@ -6,17 +6,18 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.common.ApiResponse;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +35,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 도감 목록 조회",
-            description = "전체 빵 카탈로그와 현재 유저의 수집 상태를 조회합니다. 비로그인 요청에서는 카탈로그 정보만 반환합니다."
+            description = "전체 빵 카탈로그를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 수집 상태를 포함하고, 없으면 비로그인 카탈로그 정보만 반환합니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -58,9 +59,9 @@ public class BreadController {
             @RequestParam(value = "cursor", required = false) String cursor,
             @Parameter(description = "페이지당 개수. 기본 20, 최대 50", example = "20")
             @RequestParam(value = "limit", required = false) Integer limit,
-            @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
-            @RequestHeader(value = "X-USER-ID", required = false) UUID userId
+            @Parameter(hidden = true) HttpServletRequest request
     ) {
+        UUID userId = AuthRequestAttributes.getOptionalUserId(request);
         BreadCatalogListResponse response = breadComplexService.getBreadCatalog(
                 sort,
                 filter,
@@ -76,7 +77,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 프로필 조회",
-            description = "카탈로그 빵의 마스터 정보와 현재 유저의 해당 빵 기록 통계 및 기록 목록을 조회합니다."
+            description = "카탈로그 빵의 마스터 정보를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 기록 통계와 기록 목록을 포함합니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -91,9 +92,9 @@ public class BreadController {
     public ResponseEntity<ApiResponse<BreadProfileResponse>> getBreadProfile(
             @Parameter(description = "카탈로그 빵 ID", example = "b0e1f2a3-c4d5-6789-abcd-ef0123456789")
             @PathVariable UUID breadId,
-            @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
-            @RequestHeader(value = "X-USER-ID", required = false) UUID userId
+            @Parameter(hidden = true) HttpServletRequest request
     ) {
+        UUID userId = AuthRequestAttributes.getOptionalUserId(request);
         BreadProfileResponse response = breadComplexService.getBreadProfile(
                 breadId,
                 userId
@@ -104,7 +105,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 카탈로그 자동완성",
-            description = "빵 기록 시 사용할 빵 이름 자동완성 목록을 조회합니다. q가 없으면 인기순 기본 목록을 반환합니다."
+            description = "빵 기록 시 사용할 빵 이름 자동완성 목록을 조회합니다. q가 없으면 인기순 기본 목록을 반환하며, Authorization 헤더가 있으면 현재 사용자 기준 기록 수를 포함합니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -118,9 +119,9 @@ public class BreadController {
     public ResponseEntity<ApiResponse<BreadAutocompleteResponse>> autocompleteBreads(
             @Parameter(description = "검색어. 미입력 시 인기순 빵 목록을 반환합니다.", example = "크루")
             @RequestParam(value = "q", required = false) String query,
-            @Parameter(description = "임시 사용자 ID. user/auth 연동 전까지 사용합니다.", example = "00000000-0000-0000-0000-000000000001")
-            @RequestHeader(value = "X-USER-ID", required = false) UUID userId
+            @Parameter(hidden = true) HttpServletRequest request
     ) {
+        UUID userId = AuthRequestAttributes.getOptionalUserId(request);
         BreadAutocompleteResponse response = breadComplexService.autocompleteBreads(query, userId);
 
         return ResponseEntity.ok(ApiResponse.success(response));

@@ -5,6 +5,7 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
@@ -70,7 +71,7 @@ class BreadControllerProfileTest {
         when(breadComplexService.getBreadProfile(breadId, userId)).thenReturn(response);
 
         mockMvc.perform(get("/breads/catalog/{breadId}", breadId)
-                        .header("X-USER-ID", userId.toString()))
+                        .requestAttr(AuthRequestAttributes.USER_ID, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.bread_id").value(breadId.toString()))
