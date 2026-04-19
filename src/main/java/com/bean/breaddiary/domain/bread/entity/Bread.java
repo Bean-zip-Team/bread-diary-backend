@@ -58,4 +58,8 @@ public class Bread {
     public boolean isUserCreated() {
         return createdBy != null;
     }
+
+    public void clearCreator() {
+        this.createdBy = null;
+    }
 }

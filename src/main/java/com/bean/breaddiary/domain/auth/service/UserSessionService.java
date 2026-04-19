@@ -87,6 +87,11 @@ public class UserSessionService {
                 .forEach(userSession -> userSession.revoke(targetTime));
     }
 
+    @Transactional
+    public void deleteAllSessions(UUID userId) {
+        userSessionRepository.deleteAllByUserId(userId);
+    }
+
     public LocalDateTime calculateAccessTokenExpiresAt(LocalDateTime issuedAt) {
         return resolveTime(issuedAt).plus(ACCESS_TOKEN_TTL);
     }

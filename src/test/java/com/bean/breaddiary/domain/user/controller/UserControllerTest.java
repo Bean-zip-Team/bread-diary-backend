@@ -5,7 +5,9 @@ import com.bean.breaddiary.domain.auth.service.JwtTokenProvider;
 import com.bean.breaddiary.domain.auth.service.UserSessionService;
 import com.bean.breaddiary.domain.user.dto.response.UserMeResponse;
 import com.bean.breaddiary.domain.user.dto.response.UserStatsResponse;
+import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.service.UserService;
+import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.interceptor.AuthInterceptor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,6 +45,7 @@ class UserControllerTest {
     private static final LocalDateTime PROFILE_CREATED_AT = LocalDateTime.of(2026, 4, 1, 0, 0);
 
     private UserService userService;
+    private UserWithdrawalService userWithdrawalService;
     private UserSessionService userSessionService;
     private JwtTokenProvider jwtTokenProvider;
     private MockMvc mockMvc;
@@ -52,6 +56,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         userService = mock(UserService.class);
+        userWithdrawalService = mock(UserWithdrawalService.class);
         userSessionService = mock(UserSessionService.class);
         jwtTokenProvider = new JwtTokenProvider(
                 new ObjectMapper(),
@@ -62,7 +67,7 @@ class UserControllerTest {
         accessTokenExpiresAt = tokenIssuedAt.plusDays(1);
         refreshTokenExpiresAt = tokenIssuedAt.plusDays(30);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new UserController(userService))
+                .standaloneSetup(new UserController(userService, userWithdrawalService))
                 .addInterceptors(new AuthInterceptor(jwtTokenProvider, userSessionService))
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
@@ -107,12 +112,29 @@ class UserControllerTest {
     }
 
     @Test
+    void withdrawCurrentUserReturnsSuccessResponse() throws Exception {
+        when(userSessionService.findActiveSession(eq(SESSION_ID), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(activeSession()));
+        when(userWithdrawalService.withdrawCurrentUser(AUTHENTICATED_USER_ID))
+                .thenReturn(new UserWithdrawalResponse(true));
+
+        mockMvc.perform(delete("/users/me")
+                        .header(HttpHeaders.AUTHORIZATION, bearerAccessToken())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.withdrawn").value(true));
+
+        verify(userWithdrawalService).withdrawCurrentUser(AUTHENTICATED_USER_ID);
+    }
+
+    @Test
     void getCurrentUserProfileWithoutAuthenticationReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/users/me")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(userService, userSessionService);
+        verifyNoInteractions(userService, userWithdrawalService, userSessionService);
     }
 
     @Test
@@ -122,7 +144,7 @@ class UserControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(userService, userSessionService);
+        verifyNoInteractions(userService, userWithdrawalService, userSessionService);
     }
 
     @Test

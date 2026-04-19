@@ -1,0 +1,20 @@
+package com.bean.breaddiary.domain.auth.dto.request;
+
+import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TossWebhookRequest {
+
+    @NotBlank(message = "user_key는 필수입니다.")
+    private String userKey;
+
+    @NotNull(message = "event_type은 필수입니다.")
+    private TossWebhookEventType eventType;
+}

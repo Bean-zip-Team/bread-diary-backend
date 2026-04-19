@@ -21,19 +21,24 @@ public class TossAuthClient {
             "/api-partner/v1/apps-in-toss/user/oauth2/generate-token";
     private static final String LOGIN_ME_PATH =
             "/api-partner/v1/apps-in-toss/user/oauth2/login-me";
+    private static final String REMOVE_BY_USER_KEY_PATH =
+            "/api-partner/v1/apps-in-toss/user/oauth2/remove-by-user-key";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final String unlinkAccessToken;
 
     public TossAuthClient(
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${app.auth.toss.base-url:https://apps-in-toss-api.toss.im}") String baseUrl
+            @Value("${app.auth.toss.base-url:https://apps-in-toss-api.toss.im}") String baseUrl,
+            @Value("${TOSS_UNLINK_ACCESS_TOKEN:${app.auth.toss.unlink-access-token:}}") String unlinkAccessToken
     ) {
         this.restClient = restClientBuilder
                 .baseUrl(baseUrl)
                 .build();
         this.objectMapper = objectMapper;
+        this.unlinkAccessToken = unlinkAccessToken;
     }
 
     public TossGenerateTokenSuccess exchangeAuthorizationCode(
@@ -73,6 +78,30 @@ public class TossAuthClient {
             return response.success();
         } catch (RestClientResponseException exception) {
             throw convertException(exception, "토스 사용자 정보 조회에 실패했습니다.");
+        }
+    }
+
+    public void unlinkByUserKey(String userKey) {
+        requireUnlinkAccessToken();
+
+        try {
+            TossUnlinkResponse response = restClient.post()
+                    .uri(REMOVE_BY_USER_KEY_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Authorization", "Bearer " + unlinkAccessToken)
+                    .body(new TossUnlinkRequest(userKey))
+                    .retrieve()
+                    .body(TossUnlinkResponse.class);
+
+            if (response == null || response.success() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "토스 연결 끊기에 실패했습니다.");
+            }
+        } catch (RestClientResponseException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "토스 연결 끊기에 실패했습니다.",
+                    exception
+            );
         }
     }
 
@@ -118,9 +147,23 @@ public class TossAuthClient {
         }
     }
 
+    private void requireUnlinkAccessToken() {
+        if (!StringUtils.hasText(unlinkAccessToken)) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "TOSS_UNLINK_ACCESS_TOKEN 설정이 필요합니다."
+            );
+        }
+    }
+
     private record TossGenerateTokenRequest(
             String authorizationCode,
             String referrer
+    ) {
+    }
+
+    private record TossUnlinkRequest(
+            String userKey
     ) {
     }
 
@@ -155,6 +198,14 @@ public class TossAuthClient {
             JsonNode userKey,
             String name,
             String email
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static record TossUnlinkResponse(
+            String resultType,
+            JsonNode success,
+            TossApiError error
     ) {
     }
 
