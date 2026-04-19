@@ -100,9 +100,6 @@ public class BreadRecordComplexService {
         breadRecordService.deleteBreadRecord(breadRecord);
 
         boolean stickerRemoved = !breadRecordService.hasRemainingActiveRecord(userId, bread);
-        if (stickerRemoved && !breadRecordService.existsActiveRecordByBread(bread)) {
-            breadService.deleteIfUserCreated(bread);
-        }
 
         return new BreadRecordDeleteResponse(stickerRemoved);
     }

@@ -111,19 +111,18 @@ class BreadRecordComplexServiceTest {
     }
 
     @Test
-    void deleteBreadRecordDeletesUserCreatedBreadWhenNoActiveRecordRemains() {
+    void deleteBreadRecordDoesNotDeleteBreadBecauseSoftDeletedRecordStillReferencesIt() {
         Bread bread = createBread(USER_ID);
         BreadRecord breadRecord = createBreadRecord(bread);
 
         when(breadRecordService.getActiveRecordForUser(USER_ID, RECORD_ID)).thenReturn(breadRecord);
         when(breadRecordService.hasRemainingActiveRecord(USER_ID, bread)).thenReturn(false);
-        when(breadRecordService.existsActiveRecordByBread(bread)).thenReturn(false);
 
         BreadRecordDeleteResponse response = breadRecordComplexService.deleteBreadRecord(USER_ID, RECORD_ID);
 
         assertTrue(response.getStickerRemoved());
         verify(breadRecordService).deleteBreadRecord(breadRecord);
-        verify(breadService).deleteIfUserCreated(bread);
+        verify(breadService, never()).deleteIfUserCreated(bread);
     }
 
     private Bread createBread(UUID createdBy) {
