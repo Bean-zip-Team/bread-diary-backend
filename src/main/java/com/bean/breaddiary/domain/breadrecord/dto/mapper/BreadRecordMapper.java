@@ -58,7 +58,7 @@ public interface BreadRecordMapper {
     @Mapping(target = "name", source = "breadRecord.bread.name")
     @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
     @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
-    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    @Mapping(target = "photoThumbnailUrl", expression = "java(com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(breadRecord.getPhotoUrl()))")
     @Mapping(target = "isFirstRecord", source = "isFirstRecord")
     BreadRecordCreateResponse mapToCreateResponse(
             BreadRecord breadRecord,
@@ -71,23 +71,8 @@ public interface BreadRecordMapper {
     @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
     @Mapping(target = "breadTypeLabel", expression = "java(toBreadTypeLabel(breadRecord.getBread().getBreadType()))")
     @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
-    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    @Mapping(target = "photoThumbnailUrl", expression = "java(com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(breadRecord.getPhotoUrl()))")
     BreadRecordDetailResponse mapToDetailResponse(BreadRecord breadRecord);
-
-    default String toThumbnailUrl(String photoUrl) {
-        if (photoUrl == null) {
-            return null;
-        }
-
-        int extensionIndex = photoUrl.lastIndexOf('.');
-        if (extensionIndex < 0) {
-            return photoUrl + "_thumb";
-        }
-
-        return photoUrl.substring(0, extensionIndex)
-                + "_thumb"
-                + photoUrl.substring(extensionIndex);
-    }
 
     default Map<UUID, BreadRecordCatalogStats> mapToCatalogStatsMap(
             List<BreadRecordCatalogStatsProjection> statsProjections,
@@ -114,7 +99,7 @@ public interface BreadRecordMapper {
                 ));
     }
 
-    @Mapping(target = "photoThumbnailUrl", expression = "java(toThumbnailUrl(breadRecord.getPhotoUrl()))")
+    @Mapping(target = "photoThumbnailUrl", expression = "java(com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(breadRecord.getPhotoUrl()))")
     BreadProfileRecordResponse mapToProfileRecord(BreadRecord breadRecord);
 
     default List<BreadProfileRecordResponse> mapToProfileRecords(List<BreadRecord> breadRecords) {
