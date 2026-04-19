@@ -3,9 +3,12 @@ package com.bean.breaddiary.domain.auth.controller;
 import com.bean.breaddiary.domain.auth.dto.request.LogoutRequest;
 import com.bean.breaddiary.domain.auth.dto.request.RefreshTokenRequest;
 import com.bean.breaddiary.domain.auth.dto.request.TossLoginRequest;
+import com.bean.breaddiary.domain.auth.dto.request.TossWebhookRequest;
 import com.bean.breaddiary.domain.auth.dto.response.AuthTokenResponse;
 import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
+import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.service.AuthService;
+import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,17 +21,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "인증 API", description = "로그인, 토큰 재발급, 로그아웃 API입니다.")
+@Tag(name = "인증 API", description = "로그인, 토큰 재발급, 로그아웃, 토스 웹훅 처리 API입니다.")
 @Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
 
+    private static final String TOSS_WEBHOOK_SECRET_HEADER = "x-toss-webhook-secret";
+
     private final AuthService authService;
+    private final UserWithdrawalService userWithdrawalService;
 
     @Operation(
             summary = "토스 로그인",
@@ -96,6 +103,30 @@ public class AuthController {
     ) {
         return ResponseEntity.ok(
                 ApiResponse.success(authService.logout(request))
+        );
+    }
+
+    @Operation(
+            summary = "토스 연결 해제 웹훅",
+            description = "토스 웹훅 secret을 검증하고 eventType에 따라 세션 정리 또는 사용자 완전 삭제를 수행합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "웹훅 처리 성공",
+                    content = @Content(schema = @Schema(implementation = TossWebhookResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "웹훅 인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 웹훅 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @PostMapping("/webhook/toss-unlink")
+    public ResponseEntity<ApiResponse<TossWebhookResponse>> handleTossWebhook(
+            @RequestHeader(TOSS_WEBHOOK_SECRET_HEADER) String webhookSecret,
+            @Valid @RequestBody TossWebhookRequest request
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(userWithdrawalService.handleTossWebhook(webhookSecret, request))
         );
     }
 }

@@ -76,7 +76,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         if (HTTP_POST.equalsIgnoreCase(method)
-                && ("/auth/toss".equals(requestUri) || "/auth/refresh".equals(requestUri))) {
+                && ("/auth/toss".equals(requestUri)
+                || "/auth/refresh".equals(requestUri)
+                || "/auth/webhook/toss-unlink".equals(requestUri))) {
             return false;
         }
 

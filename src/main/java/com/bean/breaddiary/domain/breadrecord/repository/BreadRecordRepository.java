@@ -7,6 +7,7 @@ import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCountPro
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.UserStatsProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,7 +24,12 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
     long countByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
     long countByUserIdAndBread(UUID userId, Bread bread);
     boolean existsByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
+    boolean existsByBread(Bread bread);
     boolean existsByBreadAndDeletedAtIsNull(Bread bread);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from BreadRecord breadRecord where breadRecord.userId = :userId")
+    void hardDeleteAllByUserId(@Param("userId") UUID userId);
 
     @Query("""
             select br.bread.id as breadId, count(br) as eatCount

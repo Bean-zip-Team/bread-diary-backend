@@ -3,9 +3,13 @@ package com.bean.breaddiary.domain.auth.controller;
 import com.bean.breaddiary.domain.auth.dto.request.LogoutRequest;
 import com.bean.breaddiary.domain.auth.dto.request.RefreshTokenRequest;
 import com.bean.breaddiary.domain.auth.dto.request.TossLoginRequest;
+import com.bean.breaddiary.domain.auth.dto.request.TossWebhookRequest;
 import com.bean.breaddiary.domain.auth.dto.response.AuthTokenResponse;
 import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
+import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
+import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.bean.breaddiary.domain.auth.service.AuthService;
+import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,13 +36,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
 
     private AuthService authService;
+    private UserWithdrawalService userWithdrawalService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         authService = mock(AuthService.class);
+        userWithdrawalService = mock(UserWithdrawalService.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new AuthController(authService))
+                .standaloneSetup(new AuthController(authService, userWithdrawalService))
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
@@ -137,6 +143,34 @@ class AuthControllerTest {
         ArgumentCaptor<LogoutRequest> requestCaptor = ArgumentCaptor.forClass(LogoutRequest.class);
         verify(authService).logout(requestCaptor.capture());
         assertEquals("refresh-token", requestCaptor.getValue().getRefreshToken());
+    }
+
+    @Test
+    void handleTossWebhookBindsSnakeCaseRequestAndSerializesResponse() throws Exception {
+        when(userWithdrawalService.handleTossWebhook(any(String.class), any(TossWebhookRequest.class)))
+                .thenReturn(new TossWebhookResponse(true, TossWebhookEventType.UNLINK));
+
+        mockMvc.perform(post("/auth/webhook/toss-unlink")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("x-toss-webhook-secret", "webhook-secret")
+                        .content("""
+                                {
+                                  "user_key": "toss-user-key-12345678",
+                                  "event_type": "UNLINK"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.processed").value(true))
+                .andExpect(jsonPath("$.data.event_type").value("UNLINK"))
+                .andExpect(jsonPath("$.data.eventType").doesNotExist());
+
+        ArgumentCaptor<TossWebhookRequest> requestCaptor = ArgumentCaptor.forClass(TossWebhookRequest.class);
+        ArgumentCaptor<String> secretCaptor = ArgumentCaptor.forClass(String.class);
+        verify(userWithdrawalService).handleTossWebhook(secretCaptor.capture(), requestCaptor.capture());
+        assertEquals("webhook-secret", secretCaptor.getValue());
+        assertEquals("toss-user-key-12345678", requestCaptor.getValue().getUserKey());
+        assertEquals(TossWebhookEventType.UNLINK, requestCaptor.getValue().getEventType());
     }
 
     private JsonMapper snakeCaseObjectMapper() {

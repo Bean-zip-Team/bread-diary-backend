@@ -58,6 +58,15 @@ class AuthInterceptorTest {
     }
 
     @Test
+    void preHandleSkipsWhitelistedTossWebhookEndpoint() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/webhook/toss-unlink");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(authInterceptor.preHandle(request, response, handlerMethod));
+        verifyNoInteractions(userSessionService);
+    }
+
+    @Test
     void preHandleRejectsMissingBearerTokenForProtectedEndpoint() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/breads/550e8400-e29b-41d4-a716-446655440000");
         MockHttpServletResponse response = new MockHttpServletResponse();
