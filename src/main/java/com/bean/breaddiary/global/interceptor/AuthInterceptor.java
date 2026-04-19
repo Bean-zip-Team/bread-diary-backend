@@ -32,10 +32,19 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        if (!requiresAuthentication(request)) {
+        if (isPublicEndpoint(request)) {
             return true;
         }
 
+        if (isOptionalAuthEndpoint(request) && !hasAuthorizationHeader(request)) {
+            return true;
+        }
+
+        authenticate(request);
+        return true;
+    }
+
+    private void authenticate(HttpServletRequest request) {
         String accessToken = resolveAccessToken(request);
         LocalDateTime now = LocalDateTime.now();
         JwtTokenProvider.JwtTokenClaims claims = jwtTokenProvider.parseToken(accessToken);
@@ -57,43 +66,57 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         request.setAttribute(AuthRequestAttributes.USER_ID, claims.userId());
         request.setAttribute(AuthRequestAttributes.SESSION_ID, claims.sessionId());
-        return true;
     }
 
-    private boolean requiresAuthentication(HttpServletRequest request) {
+    private boolean isPublicEndpoint(HttpServletRequest request) {
         String method = request.getMethod();
         String requestUri = request.getRequestURI();
 
         if (HTTP_OPTIONS.equalsIgnoreCase(method)) {
-            return false;
+            return true;
         }
 
         if ("/error".equals(requestUri)
                 || "/swagger-ui.html".equals(requestUri)
                 || PATH_MATCHER.match("/swagger-ui/**", requestUri)
                 || PATH_MATCHER.match("/v3/api-docs/**", requestUri)) {
-            return false;
+            return true;
         }
 
         if (HTTP_POST.equalsIgnoreCase(method)
                 && ("/auth/toss".equals(requestUri)
                 || "/auth/refresh".equals(requestUri)
                 || "/auth/webhook/toss-unlink".equals(requestUri))) {
-            return false;
+            return true;
+        }
+
+        if (HTTP_POST.equalsIgnoreCase(method) && "/dev/auth/token".equals(requestUri)) {
+            return true;
         }
 
         if (HTTP_GET.equalsIgnoreCase(method) && "/bread-types".equals(requestUri)) {
-            return false;
+            return true;
         }
+
+        return false;
+    }
+
+    private boolean isOptionalAuthEndpoint(HttpServletRequest request) {
+        String method = request.getMethod();
+        String requestUri = request.getRequestURI();
 
         if (HTTP_GET.equalsIgnoreCase(method)
                 && ("/breads".equals(requestUri)
                 || "/breads/autocomplete".equals(requestUri)
                 || PATH_MATCHER.match("/breads/catalog/*", requestUri))) {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
+    }
+
+    private boolean hasAuthorizationHeader(HttpServletRequest request) {
+        return StringUtils.hasText(request.getHeader(HttpHeaders.AUTHORIZATION));
     }
 
     private String resolveAccessToken(HttpServletRequest request) {
