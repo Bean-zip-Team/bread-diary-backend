@@ -114,18 +114,7 @@ public interface BreadMapper {
             return null;
         }
 
-        return toThumbnailUrl(stats.getLatestPhotoUrl());
-    }
-
-    default String toThumbnailUrl(String photoUrl) {
-        int extensionIndex = photoUrl.lastIndexOf('.');
-        if (extensionIndex < 0) {
-            return photoUrl + "_thumb";
-        }
-
-        return photoUrl.substring(0, extensionIndex)
-                + "_thumb"
-                + photoUrl.substring(extensionIndex);
+        return com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(stats.getLatestPhotoUrl());
     }
 
     @Mapping(target = "breadId", source = "bread.id")
