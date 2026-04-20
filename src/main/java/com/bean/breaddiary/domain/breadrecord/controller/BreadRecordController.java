@@ -73,7 +73,7 @@ public class BreadRecordController {
 
     @Operation(
             summary = "기존 빵 기록 생성",
-            description = "카탈로그에 있는 빵으로 기록을 생성합니다. multipart/form-data 필드는 camelCase를 사용합니다."
+            description = "카탈로그에 있는 빵으로 기록을 생성합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -102,7 +102,7 @@ public class BreadRecordController {
 
     @Operation(
             summary = "신규 빵 추가 및 기록 생성",
-            description = "카탈로그에 없는 신규 빵을 추가하고 첫 기록을 생성합니다. multipart/form-data 필드는 camelCase를 사용합니다."
+            description = "카탈로그에 없는 신규 빵을 추가하고 첫 기록을 생성합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
