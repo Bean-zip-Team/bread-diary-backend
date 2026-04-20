@@ -37,12 +37,4 @@ public class UpdateBreadRecordRequest {
     @Schema(description = "후기. 빈 문자열 전송 시 null로 초기화", example = "겉은 바삭하고 안은 촉촉해서 완벽했어요.", maxLength = 500)
     @Size(max = 500, message = "후기는 500자 이내로 입력해주세요.")
     private String review;
-
-    public void setShop_name(String shopName) {
-        this.shopName = shopName;
-    }
-
-    public void setEaten_date(LocalDate eatenDate) {
-        this.eatenDate = eatenDate;
-    }
 }
