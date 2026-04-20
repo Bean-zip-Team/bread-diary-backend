@@ -53,16 +53,4 @@ public class CreateNewBreadRecordRequest {
     @Schema(description = "후기", example = "말차 맛이 진해서 좋았어요.", maxLength = 500)
     @Size(max = 500, message = "후기는 500자 이내로 입력해주세요.")
     private String review;
-
-    public void setBread_type(BreadType breadType) {
-        this.breadType = breadType;
-    }
-
-    public void setShop_name(String shopName) {
-        this.shopName = shopName;
-    }
-
-    public void setEaten_date(LocalDate eatenDate) {
-        this.eatenDate = eatenDate;
-    }
 }
