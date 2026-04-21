@@ -1,10 +1,17 @@
 {
   "version": 2,
-  "description": "Bread Diary user/auth Codex prompt placement manifest",
+  "description": "Bread Diary user/auth Codex prompt and contract placement manifest",
   "base_docs_path": "docs",
   "prompt_folder": "docs/codex-prompts-user",
-  "spec_file": "docs/user-part-spec.md",
+  "spec_file": "docs/auth-user-api-contract.md",
   "files": [
+    {
+      "name": "auth-user-api-contract.md",
+      "target_path": "docs/auth-user-api-contract.md",
+      "category": "spec",
+      "required": true,
+      "purpose": "auth/user 최신 API 계약 기준 문서"
+    },
     {
       "name": "README.md",
       "target_path": "docs/codex-prompts-user/README.md",
@@ -71,9 +78,9 @@
     {
       "name": "user-part-spec.md",
       "target_path": "docs/user-part-spec.md",
-      "category": "spec",
+      "category": "archive-spec",
       "required": true,
-      "purpose": "유저/인증 도메인 설계 문서"
+      "purpose": "유저/인증 도메인 초기 설계 archive 문서"
     }
   ]
 }

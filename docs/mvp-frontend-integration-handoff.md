@@ -1,6 +1,8 @@
 # MVP Frontend Integration Handoff
 
-## Current Branch
+> Deprecated/archive note: this document is a historical handoff snapshot from the `feat/58-mvp-frontend-integration` work. Current auth/user API contract is `docs/auth-user-api-contract.md`; current local/E2E guide is `docs/local-env-and-e2e-guide.md`; Toss E2E readiness is `docs/toss-e2e-checklist.md`.
+
+## Historical Branch Snapshot
 
 - Branch: `feat/58-mvp-frontend-integration`
 - Latest merged develop commit: `a135be0 Merge pull request #57 from Bean-zip-Team/test/47-auth-refresh-mysql-integration`
@@ -47,7 +49,7 @@
 - CORS configuration was added in `WebConfig`.
 - Global error handling was added with `{ success: false, error: { code, message } }`.
 - `AuthControllerTest`, `AuthServiceTest`, and `GlobalExceptionHandlerTest` cover the new auth/error behavior.
-- Full `gradle test` previously passed before the auth/user contract commit, but the current workspace cannot run Gradle because `gradle/wrapper/gradle-wrapper.jar` is missing and system `gradle` is not installed.
+- Historical note: this snapshot previously mentioned Gradle wrapper availability issues. Current cleanup docs should use `docs/local-env-and-e2e-guide.md` and the Gradle wrapper.
 
 ## Current Implementation Status
 
@@ -96,12 +98,12 @@
 - My page stats:
   - Included in `/users/me`.
   - Separate stats endpoint does not exist.
-  - `totalStickers` is not implemented.
+  - Current implementation includes camelCase `totalStickers`.
 
 ### Not Implemented
 
 - `/v1` API prefix.
-- Request/response access logging policy beyond error logging.
+- Event collection or external log collection infrastructure.
 - Rate limiting.
 - Anonymous/guest save then login auto-save flow.
 - Event collection API.
@@ -115,7 +117,7 @@
 - MVP spec says `/auth/toss` request is `code` and `redirect_uri`; current implementation uses Toss App-in-Toss `authorizationCode` and `referrer`.
 - MVP spec says refresh response only returns access token; current implementation rotates and returns both access and refresh tokens.
 - MVP spec says logout body is empty; current implementation now supports empty body when Bearer access token is present. Existing `refreshToken` body is still accepted.
-- MVP spec says `/users/me.stats.total_stickers`; current code does not provide it.
+- MVP spec says `/users/me.stats.total_stickers`; current implementation provides camelCase `stats.totalStickers`.
 - MVP spec includes `/v1` prefix; controllers currently do not.
 
 ## Known Local Working Tree Notes
@@ -181,7 +183,7 @@ latest code and only then modify what is still missing.
 
 ## Next Work Priority
 
-1. Run tests after restoring `gradle/wrapper/gradle-wrapper.jar` or installing Gradle.
+1. For current work, use Gradle wrapper and run the relevant tests when code changes are made.
 2. Confirm frontend auth/user contract with the frontend team.
 3. Confirm `/auth/toss` request and response fields match frontend camelCase.
 4. Verify JWT settings and Toss settings are documented for local and deployed
@@ -189,7 +191,7 @@ latest code and only then modify what is still missing.
 5. Prepare Toss E2E test steps using a real frontend authorization code.
 6. Verify `/auth/refresh`, `/auth/logout`, `/users/me`, withdrawal, and webhook
    behavior with existing tests and manual calls where possible.
-7. Decide whether `/users/me.stats.totalStickers` is needed for MVP.
+7. `users/me.stats.totalStickers` is already implemented in the current contract.
 8. Keep bread, breadrecord, upload, and s3 changes out of this branch unless approved.
 
 ## Frontend Contract Snapshot
@@ -351,7 +353,7 @@ Important:
 - Toss `authorizationCode` is one-time use.
 - Toss `authorizationCode` expires quickly.
 - If Toss API fails, check for expired/reused code, mTLS/certificate issues, environment config, DB, and CORS.
-- The current workspace cannot run Gradle until `gradle/wrapper/gradle-wrapper.jar` is restored or a local Gradle installation is available.
+- This is an archived prompt. Current work should verify the branch with the Gradle wrapper when code changes are made.
 
 ## New Chat Starter Prompt
 
@@ -370,5 +372,5 @@ Before editing code, summarize:
 4. reason for each modification
 After checking develop, classify auth/user/token items as done, partially done, or missing.
 Update docs first, then implement only remaining user/auth/token work.
-Start by verifying tests, Toss E2E readiness, and whether totalStickers is needed for MVP.
+Start by reading `docs/auth-user-api-contract.md`, `docs/local-env-and-e2e-guide.md`, and `docs/toss-e2e-checklist.md` before using this archived handoff snapshot.
 ```

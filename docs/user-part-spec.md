@@ -1,5 +1,7 @@
 # User/Auth Part Spec
 
+> Archive note: 이 문서는 user/auth 초기 설계 스펙이다. 최신 auth/user API 계약과 camelCase request/response 기준은 `docs/auth-user-api-contract.md`를 따른다.
+
 ## 1. User 도메인 목적
 - 현재 사용자 조회
 - 토스 로그인 기반 사용자 식별
@@ -28,7 +30,7 @@
 ## 4. 현재 사용자 조회
 - GET /users/me
 - auth interceptor 기반 사용자 식별
-- 응답: 프로필 + 통계(total_records, unique_shops, avg_rating)
+- 최신 응답 계약: 프로필 + 통계(`totalRecords`, `totalStickers`, `uniqueShops`, `avgRating`). 상세 field는 `docs/auth-user-api-contract.md` 기준.
 
 ## 5. 회원탈퇴 정책
 ### 앱 내부 탈퇴

@@ -1,14 +1,16 @@
 # MVP Backend Readiness Plan
 
+> Archive note: 이 문서는 MVP 백엔드 준비 작업을 나누기 위한 과거 계획 문서다. 현재 완료/미완료 상태를 판단하는 기준 문서가 아니며, 최신 auth/user API 계약은 `docs/auth-user-api-contract.md`, 로컬 실행 가이드는 `docs/local-env-and-e2e-guide.md`, Toss E2E 준비는 `docs/toss-e2e-checklist.md`를 따른다.
+
 ## Goal
 
 프론트가 붙기 전에 백엔드에서 미리 닫을 수 있는 항목을 구현, 테스트, 문서화한다.
 
 이 계획은 `bread`, `breadrecord`, `upload`, `s3` 도메인 로직을 직접 수정하지 않는 것을 기본 원칙으로 한다. 다만 `/v1` prefix, rate limiting, access logging처럼 전체 API에 영향을 주는 공통 작업은 팀 결정 후 별도 브랜치에서 진행한다.
 
-## Current Baseline
+## Historical Baseline
 
-- Current branch: `feat/58-mvp-frontend-integration`
+- Historical branch snapshot: `feat/58-mvp-frontend-integration`
 - Latest pushed commits:
   - `df1b1d7 feat: prepare auth frontend integration`
   - `d4795a5 chore: restore gradle wrapper jar`
