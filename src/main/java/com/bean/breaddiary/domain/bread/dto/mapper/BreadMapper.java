@@ -7,10 +7,8 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeItemResponse;
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeListResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import org.mapstruct.Mapper;
@@ -29,14 +27,20 @@ public interface BreadMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "stickerNumber", source = "stickerNumber")
     @Mapping(target = "name", source = "request.name")
-    @Mapping(target = "breadType", source = "request.breadType")
+    @Mapping(target = "breadType", source = "breadType")
     @Mapping(target = "imageUrl", source = "imageUrl")
     @Mapping(target = "createdBy", source = "userId")
-    Bread mapToBread(CreateNewBreadRecordRequest request, Integer stickerNumber, String imageUrl, UUID userId);
+    Bread mapToBread(
+            CreateNewBreadRecordRequest request,
+            BreadType breadType,
+            Integer stickerNumber,
+            String imageUrl,
+            UUID userId
+    );
 
     @Mapping(target = "breadId", source = "bread.id")
     @Mapping(target = "name", source = "bread.name")
-    @Mapping(target = "breadType", source = "bread.breadType")
+    @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
     @Mapping(target = "imageUrl", source = "bread.imageUrl")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(eatCount))")
@@ -60,7 +64,7 @@ public interface BreadMapper {
     @Mapping(target = "breadId", source = "bread.id")
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
     @Mapping(target = "name", source = "bread.name")
-    @Mapping(target = "breadType", source = "bread.breadType")
+    @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "imageUrl", source = "bread.imageUrl")
     @Mapping(target = "isCollected", expression = "java(isCollected(stats))")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(stats))")
@@ -120,8 +124,8 @@ public interface BreadMapper {
     @Mapping(target = "breadId", source = "bread.id")
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
     @Mapping(target = "name", source = "bread.name")
-    @Mapping(target = "breadType", source = "bread.breadType")
-    @Mapping(target = "breadTypeLabel", expression = "java(toBreadTypeLabel(bread.getBreadType()))")
+    @Mapping(target = "breadType", source = "bread.breadType.code")
+    @Mapping(target = "breadTypeLabel", source = "bread.breadType.name")
     @Mapping(target = "imageUrl", source = "bread.imageUrl")
     @Mapping(target = "stats", source = "stats")
     @Mapping(target = "records", source = "records")
@@ -131,22 +135,4 @@ public interface BreadMapper {
             List<BreadProfileRecordResponse> records
     );
 
-    default String toBreadTypeLabel(BreadType breadType) {
-        return breadType == null ? null : breadType.getLabel();
-    }
-
-    default BreadTypeListResponse mapToBreadTypeListResponse(List<BreadType> breadTypes) {
-        List<BreadTypeItemResponse> items = breadTypes.stream()
-                .map(this::mapToBreadTypeItem)
-                .toList();
-
-        return new BreadTypeListResponse(items);
-    }
-
-    default BreadTypeItemResponse mapToBreadTypeItem(BreadType breadType) {
-        return new BreadTypeItemResponse(
-                breadType.name(),
-                breadType.getLabel()
-        );
-    }
 }

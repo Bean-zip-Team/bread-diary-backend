@@ -56,7 +56,7 @@ public interface BreadRecordMapper {
     @Mapping(target = "breadId", source = "breadRecord.bread.id")
     @Mapping(target = "stickerNumber", source = "breadRecord.bread.stickerNumber")
     @Mapping(target = "name", source = "breadRecord.bread.name")
-    @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
+    @Mapping(target = "breadType", source = "breadRecord.bread.breadType.code")
     @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
     @Mapping(target = "photoThumbnailUrl", expression = "java(com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(breadRecord.getPhotoUrl()))")
     @Mapping(target = "isFirstRecord", source = "isFirstRecord")
@@ -68,8 +68,8 @@ public interface BreadRecordMapper {
     @Mapping(target = "breadId", source = "breadRecord.bread.id")
     @Mapping(target = "stickerNumber", source = "breadRecord.bread.stickerNumber")
     @Mapping(target = "name", source = "breadRecord.bread.name")
-    @Mapping(target = "breadType", source = "breadRecord.bread.breadType")
-    @Mapping(target = "breadTypeLabel", expression = "java(toBreadTypeLabel(breadRecord.getBread().getBreadType()))")
+    @Mapping(target = "breadType", source = "breadRecord.bread.breadType.code")
+    @Mapping(target = "breadTypeLabel", source = "breadRecord.bread.breadType.name")
     @Mapping(target = "imageUrl", source = "breadRecord.bread.imageUrl")
     @Mapping(target = "photoThumbnailUrl", expression = "java(com.bean.breaddiary.global.common.ThumbnailUrlUtils.toThumbnailUrl(breadRecord.getPhotoUrl()))")
     BreadRecordDetailResponse mapToDetailResponse(BreadRecord breadRecord);
@@ -143,7 +143,4 @@ public interface BreadRecordMapper {
                 .doubleValue();
     }
 
-    default String toBreadTypeLabel(com.bean.breaddiary.domain.bread.entity.BreadType breadType) {
-        return breadType == null ? null : breadType.getLabel();
-    }
 }

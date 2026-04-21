@@ -6,9 +6,8 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeListResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -104,12 +102,6 @@ public class BreadService {
         );
     }
 
-    public BreadTypeListResponse getBreadTypes() {
-        return breadMapper.mapToBreadTypeListResponse(
-                Arrays.asList(BreadType.values())
-        );
-    }
-
     @Transactional
     public void deleteIfUserCreated(Bread bread) {
         if (bread != null && bread.isUserCreated()) {
@@ -118,11 +110,12 @@ public class BreadService {
     }
 
     @Transactional
-    public Bread createUserBread(CreateNewBreadRecordRequest request, UUID userId) {
+    public Bread createUserBread(CreateNewBreadRecordRequest request, BreadType breadType, UUID userId) {
         validateBreadNameNotDuplicated(request.getName());
 
         Bread bread = breadMapper.mapToBread(
                 request,
+                breadType,
                 getNextStickerNumber(),
                 DEFAULT_USER_BREAD_IMAGE_URL,
                 userId

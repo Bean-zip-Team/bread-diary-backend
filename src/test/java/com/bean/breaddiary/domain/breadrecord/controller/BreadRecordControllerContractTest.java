@@ -1,6 +1,5 @@
 package com.bean.breaddiary.domain.breadrecord.controller;
 
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.UpdateBreadRecordRequest;
@@ -58,7 +57,7 @@ class BreadRecordControllerContractTest {
     @Test
     void createBreadRecordBindsSnakeCaseMultipartFieldsAndSerializesSnakeCaseResponse() throws Exception {
         UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
-        BreadRecordCreateResponse response = createResponse(breadId, BreadType.PASTRY, false);
+        BreadRecordCreateResponse response = createResponse(breadId, "PASTRY", false);
 
         when(breadRecordComplexService.createBreadRecord(eq(AUTHENTICATED_USER_ID), any(CreateBreadRecordRequest.class)))
                 .thenReturn(response);
@@ -102,7 +101,7 @@ class BreadRecordControllerContractTest {
     @Test
     void createNewBreadRecordBindsSnakeCaseMultipartFields() throws Exception {
         UUID breadId = UUID.fromString("c1d2e3f4-a5b6-7890-cdef-ab0123456789");
-        BreadRecordCreateResponse response = createResponse(breadId, BreadType.BAGEL, true);
+        BreadRecordCreateResponse response = createResponse(breadId, "BAGEL", true);
 
         when(breadRecordComplexService.createNewBreadRecord(eq(AUTHENTICATED_USER_ID), any(CreateNewBreadRecordRequest.class)))
                 .thenReturn(response);
@@ -134,7 +133,7 @@ class BreadRecordControllerContractTest {
 
         CreateNewBreadRecordRequest request = requestCaptor.getValue();
         assertEquals("플레인 베이글", request.getName());
-        assertEquals(BreadType.BAGEL, request.getBreadType());
+        assertEquals("BAGEL", request.getBreadType());
         assertEquals("베이글집", request.getShopName());
         assertEquals(LocalDate.of(2026, 3, 15), request.getEatenDate());
     }
@@ -224,7 +223,7 @@ class BreadRecordControllerContractTest {
         verify(breadRecordComplexService).deleteBreadRecord(AUTHENTICATED_USER_ID, RECORD_ID);
     }
 
-    private BreadRecordCreateResponse createResponse(UUID breadId, BreadType breadType, boolean isFirstRecord) {
+    private BreadRecordCreateResponse createResponse(UUID breadId, String breadType, boolean isFirstRecord) {
         return new BreadRecordCreateResponse(
                 UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
                 breadId,
@@ -249,7 +248,7 @@ class BreadRecordControllerContractTest {
                 BREAD_ID,
                 7,
                 "크루아상",
-                BreadType.PASTRY,
+                "PASTRY",
                 "페이스트리",
                 "https://cdn.bread-diary.app/breads/croissant.webp",
                 "https://cdn.bread-diary.app/bread-photos/record.webp",

@@ -2,7 +2,6 @@ package com.bean.breaddiary.domain.bread.controller;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogItemResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +47,7 @@ class BreadControllerCatalogTest {
                         breadId,
                         6,
                         "크루아상",
-                        BreadType.PASTRY,
+                        "PASTRY",
                         "https://cdn.bread-diary.app/breads/croissant.webp",
                         true,
                         5L,
@@ -64,7 +63,7 @@ class BreadControllerCatalogTest {
         when(breadComplexService.getBreadCatalog(
                 "sticker_number",
                 "collected",
-                BreadType.PASTRY,
+                "PASTRY",
                 "크루",
                 null,
                 20,
@@ -99,7 +98,7 @@ class BreadControllerCatalogTest {
         verify(breadComplexService).getBreadCatalog(
                 "sticker_number",
                 "collected",
-                BreadType.PASTRY,
+                "PASTRY",
                 "크루",
                 null,
                 20,

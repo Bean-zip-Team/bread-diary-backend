@@ -1,8 +1,9 @@
 package com.bean.breaddiary.domain.breadrecord.service;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadService;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.domain.breadrecord.dto.request.UpdateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDeleteResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDetailResponse;
@@ -15,6 +16,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -28,6 +30,7 @@ class BreadRecordComplexServiceTest {
     private static final UUID RECORD_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 
     private BreadService breadService;
+    private BreadTypeService breadTypeService;
     private BreadRecordService breadRecordService;
     private S3UploadService s3UploadService;
     private BreadRecordComplexService breadRecordComplexService;
@@ -35,10 +38,12 @@ class BreadRecordComplexServiceTest {
     @BeforeEach
     void setUp() {
         breadService = mock(BreadService.class);
+        breadTypeService = mock(BreadTypeService.class);
         breadRecordService = mock(BreadRecordService.class);
         s3UploadService = mock(S3UploadService.class);
         breadRecordComplexService = new BreadRecordComplexService(
                 breadService,
+                breadTypeService,
                 breadRecordService,
                 s3UploadService
         );
@@ -130,7 +135,7 @@ class BreadRecordComplexServiceTest {
                 .id(UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789"))
                 .stickerNumber(7)
                 .name("크루아상")
-                .breadType(BreadType.PASTRY)
+                .breadType(PASTRY)
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .createdBy(createdBy)
                 .build();

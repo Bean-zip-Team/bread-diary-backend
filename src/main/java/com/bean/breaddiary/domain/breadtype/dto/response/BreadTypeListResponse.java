@@ -1,4 +1,4 @@
-package com.bean.breaddiary.domain.bread.dto.response;
+package com.bean.breaddiary.domain.breadtype.dto.response;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;

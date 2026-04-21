@@ -1,7 +1,9 @@
 package com.bean.breaddiary.domain.breadrecord.service;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadService;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.UpdateBreadRecordRequest;
@@ -23,6 +25,7 @@ import java.util.UUID;
 public class BreadRecordComplexService {
 
     private final BreadService breadService;
+    private final BreadTypeService breadTypeService;
     private final BreadRecordService breadRecordService;
     private final S3UploadService s3UploadService;
 
@@ -47,7 +50,8 @@ public class BreadRecordComplexService {
     public BreadRecordCreateResponse createNewBreadRecord(UUID userId, CreateNewBreadRecordRequest request) {
         breadRecordService.validateEatenDate(request.getEatenDate());
 
-        Bread bread = breadService.createUserBread(request, userId);
+        BreadType breadType = breadTypeService.getBreadTypeByCode(request.getBreadType());
+        Bread bread = breadService.createUserBread(request, breadType, userId);
         String photoUrl = s3UploadService.uploadBreadPhoto(userId, request.getPhoto());
 
         BreadRecord savedRecord = breadRecordService.createBreadRecord(

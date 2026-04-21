@@ -1,7 +1,7 @@
 package com.bean.breaddiary.domain.bread.repository;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -1,8 +1,8 @@
-package com.bean.breaddiary.domain.bread.controller;
+package com.bean.breaddiary.domain.breadtype.controller;
 
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeItemResponse;
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeListResponse;
-import com.bean.breaddiary.domain.bread.service.BreadService;
+import com.bean.breaddiary.domain.breadtype.dto.response.BreadTypeItemResponse;
+import com.bean.breaddiary.domain.breadtype.dto.response.BreadTypeListResponse;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
@@ -23,14 +23,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class BreadTypeControllerTest {
 
-    private BreadService breadService;
+    private BreadTypeService breadTypeService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        breadService = mock(BreadService.class);
+        breadTypeService = mock(BreadTypeService.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new BreadTypeController(breadService))
+                .standaloneSetup(new BreadTypeController(breadTypeService))
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
@@ -47,7 +47,7 @@ class BreadTypeControllerTest {
                 new BreadTypeItemResponse("OTHER", "기타")
         ));
 
-        when(breadService.getBreadTypes()).thenReturn(response);
+        when(breadTypeService.getBreadTypes()).thenReturn(response);
 
         mockMvc.perform(get("/bread-types"))
                 .andExpect(status().isOk())
@@ -60,7 +60,7 @@ class BreadTypeControllerTest {
                 .andExpect(jsonPath("$.data.items[6].code").value("OTHER"))
                 .andExpect(jsonPath("$.data.items[6].label").value("기타"));
 
-        verify(breadService).getBreadTypes();
+        verify(breadTypeService).getBreadTypes();
     }
 
     private JsonMapper snakeCaseObjectMapper() {

@@ -2,7 +2,6 @@ package com.bean.breaddiary.domain.bread.controller;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteItemResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +45,7 @@ class BreadControllerAutocompleteTest {
                 new BreadAutocompleteItemResponse(
                         breadId,
                         "크루아상",
-                        BreadType.PASTRY,
+                        "PASTRY",
                         6,
                         "https://cdn.bread-diary.app/breads/croissant.webp",
                         5L

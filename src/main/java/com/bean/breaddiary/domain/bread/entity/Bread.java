@@ -1,5 +1,6 @@
 package com.bean.breaddiary.domain.bread.entity;
 
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -20,7 +22,8 @@ import java.util.UUID;
         name = "breads",
         indexes = {
                 @Index(name = "idx_breads_name", columnList = "name"),
-                @Index(name = "idx_breads_sticker_number", columnList = "sticker_number", unique = true)
+                @Index(name = "idx_breads_sticker_number", columnList = "sticker_number", unique = true),
+                @Index(name = "idx_breads_bread_type_id", columnList = "bread_type_id")
         }
 )
 @EntityListeners(AuditingEntityListener.class)
@@ -41,8 +44,8 @@ public class Bread {
     @Column(name = "name", length = 30, nullable = false, unique = true)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "bread_type", length = 20, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "bread_type_id", nullable = false)
     private BreadType breadType;
 
     @Column(name = "image_url", length = 500, nullable = false)
@@ -61,5 +64,23 @@ public class Bread {
 
     public void clearCreator() {
         this.createdBy = null;
+    }
+
+    public boolean updateSystemCatalog(
+            String name,
+            BreadType breadType,
+            String imageUrl
+    ) {
+        boolean changed = !Objects.equals(this.name, name)
+                || !Objects.equals(this.breadType, breadType)
+                || !Objects.equals(this.imageUrl, imageUrl);
+
+        if (changed) {
+            this.name = name;
+            this.breadType = breadType;
+            this.imageUrl = imageUrl;
+        }
+
+        return changed;
     }
 }

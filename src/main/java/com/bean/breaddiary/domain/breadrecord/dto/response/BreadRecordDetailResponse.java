@@ -1,6 +1,4 @@
 package com.bean.breaddiary.domain.breadrecord.dto.response;
-
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,7 +29,7 @@ public class BreadRecordDetailResponse {
     private String name;
 
     @Schema(description = "빵 종류", example = "PASTRY")
-    private BreadType breadType;
+    private String breadType;
 
     @Schema(description = "빵 종류 한글 표시명", example = "페이스트리")
     private String breadTypeLabel;

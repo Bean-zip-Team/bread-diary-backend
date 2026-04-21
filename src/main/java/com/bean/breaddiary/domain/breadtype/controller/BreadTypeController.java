@@ -1,7 +1,7 @@
-package com.bean.breaddiary.domain.bread.controller;
+package com.bean.breaddiary.domain.breadtype.controller;
 
-import com.bean.breaddiary.domain.bread.dto.response.BreadTypeListResponse;
-import com.bean.breaddiary.domain.bread.service.BreadService;
+import com.bean.breaddiary.domain.breadtype.dto.response.BreadTypeListResponse;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/bread-types")
 public class BreadTypeController {
 
-    private final BreadService breadService;
+    private final BreadTypeService breadTypeService;
 
     @Operation(
             summary = "빵 종류 목록 조회",
@@ -37,7 +37,7 @@ public class BreadTypeController {
     })
     @GetMapping
     public ResponseEntity<ApiResponse<BreadTypeListResponse>> getBreadTypes() {
-        BreadTypeListResponse response = breadService.getBreadTypes();
+        BreadTypeListResponse response = breadTypeService.getBreadTypes();
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
