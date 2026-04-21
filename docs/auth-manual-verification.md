@@ -38,7 +38,7 @@ git merge --no-edit origin/develop
 
 | 파일 | 확인한 내용 |
 | --- | --- |
-| `docs/codex-prompts-user/mvp-backend-readiness-plan.md` | auth/user 수동 검증, Toss E2E, webhook, logout 확인이 남은 작업으로 정리되어 있음 |
+| `docs/auth-user-api-contract.md` | 최신 auth/user API 계약, camelCase 기준, logout 최신 계약 확인 |
 | `docs/local-env-and-e2e-guide.md` | local profile, Docker MySQL, JWT/Toss/env, 수동 호출 절차 기준 확인 |
 | `src/main/resources/application.yml` | JWT 기본 placeholder, Toss placeholder, CORS, 운영 DB/S3 설정 구조 확인 |
 | `src/main/resources/application-local.yml` | 로컬 MySQL `localhost:3306/breaddiary`, `appuser`, MySQL driver, `ddl-auto=update` 확인 |
