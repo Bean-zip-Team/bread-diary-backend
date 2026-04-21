@@ -74,7 +74,7 @@ class UserControllerTest {
     }
 
     @Test
-    void getCurrentUserProfileReturnsSnakeCaseResponse() throws Exception {
+    void getCurrentUserProfileReturnsCamelCaseResponse() throws Exception {
         UserMeResponse response = new UserMeResponse(
                 AUTHENTICATED_USER_ID,
                 "bread_lover",
@@ -98,15 +98,15 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.id").value(AUTHENTICATED_USER_ID.toString()))
                 .andExpect(jsonPath("$.data.nickname").value("bread_lover"))
                 .andExpect(jsonPath("$.data.email").value("bread@toss.im"))
-                .andExpect(jsonPath("$.data.profile_image_url").value("https://cdn.bread-diary.app/profiles/me.webp"))
+                .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.bread-diary.app/profiles/me.webp"))
                 .andExpect(jsonPath("$.data.bio").value("I always write down my bread diary."))
-                .andExpect(jsonPath("$.data.stats.total_records").value(42))
-                .andExpect(jsonPath("$.data.stats.unique_shops").value(18))
-                .andExpect(jsonPath("$.data.stats.avg_rating").value(4.2))
-                .andExpect(jsonPath("$.data.created_at").value("2026-04-01T00:00:00"))
-                .andExpect(jsonPath("$.data.profileImageUrl").doesNotExist())
-                .andExpect(jsonPath("$.data.createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data.stats.totalRecords").doesNotExist());
+                .andExpect(jsonPath("$.data.stats.totalRecords").value(42))
+                .andExpect(jsonPath("$.data.stats.uniqueShops").value(18))
+                .andExpect(jsonPath("$.data.stats.avgRating").value(4.2))
+                .andExpect(jsonPath("$.data.createdAt").value("2026-04-01T00:00:00"))
+                .andExpect(jsonPath("$.data.profile_image_url").doesNotExist())
+                .andExpect(jsonPath("$.data.created_at").doesNotExist())
+                .andExpect(jsonPath("$.data.stats.total_records").doesNotExist());
 
         verify(userService).getCurrentUserProfile(AUTHENTICATED_USER_ID);
     }

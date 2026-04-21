@@ -1,6 +1,7 @@
 package com.bean.breaddiary.domain.auth.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -157,67 +158,90 @@ public class TossAuthClient {
     }
 
     private record TossGenerateTokenRequest(
+            @JsonProperty("authorizationCode")
             String authorizationCode,
+            @JsonProperty("referrer")
             String referrer
     ) {
     }
 
     private record TossUnlinkRequest(
+            @JsonProperty("userKey")
             String userKey
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossGenerateTokenResponse(
+            @JsonProperty("resultType")
             String resultType,
+            @JsonProperty("success")
             TossGenerateTokenSuccess success,
+            @JsonProperty("error")
             TossApiError error
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossGenerateTokenSuccess(
+            @JsonProperty("accessToken")
             String accessToken,
+            @JsonProperty("refreshToken")
             String refreshToken,
+            @JsonProperty("tokenType")
             String tokenType,
+            @JsonProperty("expiresIn")
             Long expiresIn,
+            @JsonProperty("scope")
             String scope
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossLoginMeResponse(
+            @JsonProperty("resultType")
             String resultType,
+            @JsonProperty("success")
             TossLoginMeSuccess success,
+            @JsonProperty("error")
             TossApiError error
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossLoginMeSuccess(
+            @JsonProperty("userKey")
             JsonNode userKey,
+            @JsonProperty("name")
             String name,
+            @JsonProperty("email")
             String email
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossUnlinkResponse(
+            @JsonProperty("resultType")
             String resultType,
+            @JsonProperty("success")
             JsonNode success,
+            @JsonProperty("error")
             TossApiError error
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static record TossApiError(
+            @JsonProperty("errorCode")
             String errorCode,
+            @JsonProperty("reason")
             String reason
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record TossGrantError(
+            @JsonProperty("error")
             String error
     ) {
     }

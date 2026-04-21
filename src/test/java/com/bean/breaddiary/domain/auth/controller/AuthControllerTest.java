@@ -50,7 +50,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginWithTossBindsSnakeCaseRequestAndSerializesSnakeCaseResponse() throws Exception {
+    void loginWithTossBindsSnakeCaseRequestAndSerializesCamelCaseResponse() throws Exception {
         AuthTokenResponse response = new AuthTokenResponse(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
                 "our-access-token",
@@ -74,15 +74,15 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.user_id").value("550e8400-e29b-41d4-a716-446655440000"))
-                .andExpect(jsonPath("$.data.access_token").value("our-access-token"))
-                .andExpect(jsonPath("$.data.refresh_token").value("our-refresh-token"))
-                .andExpect(jsonPath("$.data.token_type").value("Bearer"))
-                .andExpect(jsonPath("$.data.access_token_expires_at").value("2026-04-20T10:00:00"))
-                .andExpect(jsonPath("$.data.refresh_token_expires_at").value("2026-05-19T10:00:00"))
-                .andExpect(jsonPath("$.data.new_user").value(true))
-                .andExpect(jsonPath("$.data.userId").doesNotExist())
-                .andExpect(jsonPath("$.data.accessToken").doesNotExist());
+                .andExpect(jsonPath("$.data.userId").value("550e8400-e29b-41d4-a716-446655440000"))
+                .andExpect(jsonPath("$.data.accessToken").value("our-access-token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("our-refresh-token"))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.accessTokenExpiresAt").value("2026-04-20T10:00:00"))
+                .andExpect(jsonPath("$.data.refreshTokenExpiresAt").value("2026-05-19T10:00:00"))
+                .andExpect(jsonPath("$.data.newUser").value(true))
+                .andExpect(jsonPath("$.data.user_id").doesNotExist())
+                .andExpect(jsonPath("$.data.access_token").doesNotExist());
 
         ArgumentCaptor<TossLoginRequest> requestCaptor = ArgumentCaptor.forClass(TossLoginRequest.class);
         verify(authService).loginWithToss(requestCaptor.capture());
@@ -91,7 +91,42 @@ class AuthControllerTest {
     }
 
     @Test
-    void refreshBindsSnakeCaseRequestAndSerializesSnakeCaseResponse() throws Exception {
+    void loginWithTossBindsCamelCaseAuthorizationCodeFromTossClient() throws Exception {
+        AuthTokenResponse response = new AuthTokenResponse(
+                UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
+                "our-access-token",
+                "our-refresh-token",
+                "Bearer",
+                LocalDateTime.of(2026, 4, 20, 10, 0),
+                LocalDateTime.of(2026, 5, 19, 10, 0),
+                true
+        );
+
+        when(authService.loginWithToss(any(TossLoginRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(post("/auth/toss")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "authorizationCode": "auth-code-from-app-login",
+                                  "referrer": "SANDBOX"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accessToken").value("our-access-token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("our-refresh-token"))
+                .andExpect(jsonPath("$.data.access_token").doesNotExist());
+
+        ArgumentCaptor<TossLoginRequest> requestCaptor = ArgumentCaptor.forClass(TossLoginRequest.class);
+        verify(authService).loginWithToss(requestCaptor.capture());
+        assertEquals("auth-code-from-app-login", requestCaptor.getValue().getAuthorizationCode());
+        assertEquals("SANDBOX", requestCaptor.getValue().getReferrer());
+    }
+
+    @Test
+    void refreshBindsCamelCaseRequestAndSerializesCamelCaseResponse() throws Exception {
         AuthTokenResponse response = new AuthTokenResponse(
                 UUID.fromString("550e8400-e29b-41d4-a716-446655440010"),
                 "new-access-token",
@@ -109,14 +144,15 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "refresh_token": "refresh-token"
+                                  "refreshToken": "refresh-token"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.access_token").value("new-access-token"))
-                .andExpect(jsonPath("$.data.refresh_token").value("new-refresh-token"))
-                .andExpect(jsonPath("$.data.new_user").value(false));
+                .andExpect(jsonPath("$.data.accessToken").value("new-access-token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("new-refresh-token"))
+                .andExpect(jsonPath("$.data.newUser").value(false))
+                .andExpect(jsonPath("$.data.access_token").doesNotExist());
 
         ArgumentCaptor<RefreshTokenRequest> requestCaptor = ArgumentCaptor.forClass(RefreshTokenRequest.class);
         verify(authService).refresh(requestCaptor.capture());
@@ -124,7 +160,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void logoutBindsSnakeCaseRequestAndSerializesSnakeCaseResponse() throws Exception {
+    void logoutBindsCamelCaseRequestAndSerializesCamelCaseResponse() throws Exception {
         when(authService.logout(any(LogoutRequest.class)))
                 .thenReturn(new LogoutResponse(true));
 
@@ -132,13 +168,13 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "refresh_token": "refresh-token"
+                                  "refreshToken": "refresh-token"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.logged_out").value(true))
-                .andExpect(jsonPath("$.data.loggedOut").doesNotExist());
+                .andExpect(jsonPath("$.data.loggedOut").value(true))
+                .andExpect(jsonPath("$.data.logged_out").doesNotExist());
 
         ArgumentCaptor<LogoutRequest> requestCaptor = ArgumentCaptor.forClass(LogoutRequest.class);
         verify(authService).logout(requestCaptor.capture());
@@ -146,7 +182,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void handleTossWebhookBindsSnakeCaseRequestAndSerializesResponse() throws Exception {
+    void handleTossWebhookBindsCamelCaseRequestAndSerializesCamelCaseResponse() throws Exception {
         when(userWithdrawalService.handleTossWebhook(any(String.class), any(TossWebhookRequest.class)))
                 .thenReturn(new TossWebhookResponse(true, TossWebhookEventType.UNLINK));
 
@@ -155,15 +191,15 @@ class AuthControllerTest {
                         .header("x-toss-webhook-secret", "webhook-secret")
                         .content("""
                                 {
-                                  "user_key": "toss-user-key-12345678",
-                                  "event_type": "UNLINK"
+                                  "userKey": "toss-user-key-12345678",
+                                  "eventType": "UNLINK"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.processed").value(true))
-                .andExpect(jsonPath("$.data.event_type").value("UNLINK"))
-                .andExpect(jsonPath("$.data.eventType").doesNotExist());
+                .andExpect(jsonPath("$.data.eventType").value("UNLINK"))
+                .andExpect(jsonPath("$.data.event_type").doesNotExist());
 
         ArgumentCaptor<TossWebhookRequest> requestCaptor = ArgumentCaptor.forClass(TossWebhookRequest.class);
         ArgumentCaptor<String> secretCaptor = ArgumentCaptor.forClass(String.class);
