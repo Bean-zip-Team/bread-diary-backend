@@ -10,6 +10,7 @@ import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.bean.breaddiary.domain.auth.service.AuthService;
 import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -179,6 +180,23 @@ class AuthControllerTest {
         ArgumentCaptor<LogoutRequest> requestCaptor = ArgumentCaptor.forClass(LogoutRequest.class);
         verify(authService).logout(requestCaptor.capture());
         assertEquals("refresh-token", requestCaptor.getValue().getRefreshToken());
+    }
+
+    @Test
+    void logoutAllowsEmptyBodyAndUsesAuthenticatedSession() throws Exception {
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440020");
+        when(authService.logoutCurrentSession(sessionId))
+                .thenReturn(new LogoutResponse(true));
+
+        mockMvc.perform(post("/auth/logout")
+                        .requestAttr(AuthRequestAttributes.SESSION_ID, sessionId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.loggedOut").value(true))
+                .andExpect(jsonPath("$.data.logged_out").doesNotExist());
+
+        verify(authService).logoutCurrentSession(sessionId);
     }
 
     @Test
