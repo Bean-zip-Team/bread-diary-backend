@@ -1,5 +1,6 @@
 package com.bean.breaddiary.domain.auth.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,7 @@ public class TossLoginRequest {
 
     @NotBlank
     @Schema(description = "토스 authorization code", example = "auth-code-example")
+    @JsonAlias("authorizationCode")
     private String authorizationCode;
 
     @NotBlank
