@@ -44,6 +44,7 @@ class BreadRecordRepositoryTest {
 
         assertNotNull(stats);
         assertEquals(6L, stats.getTotalRecords());
+        assertEquals(1L, stats.getTotalStickers());
         assertEquals(2L, stats.getUniqueShops());
         assertEquals(3.3333333333333335, stats.getAvgRating());
     }
@@ -60,14 +61,42 @@ class BreadRecordRepositoryTest {
 
         assertNotNull(stats);
         assertEquals(1L, stats.getTotalRecords());
+        assertEquals(1L, stats.getTotalStickers());
         assertEquals(1L, stats.getUniqueShops());
         assertEquals(5.0, stats.getAvgRating());
     }
 
+    @Test
+    void findUserStatsByUserIdCountsDistinctActiveBreadsAsTotalStickers() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440002");
+        Bread firstBread = saveBread(1);
+        Bread secondBread = saveBread(2);
+        Bread thirdBread = saveBread(3);
+        Bread deletedOnlyBread = saveBread(4);
+
+        saveBreadRecord(userId, firstBread, "shop-a", 5, null);
+        saveBreadRecord(userId, firstBread, "shop-a", 4, null);
+        saveBreadRecord(userId, secondBread, "shop-b", 3, null);
+        saveBreadRecord(userId, thirdBread, "shop-c", 2, null);
+        saveBreadRecord(userId, deletedOnlyBread, "shop-d", 1, LocalDateTime.of(2026, 4, 18, 12, 0));
+
+        UserStatsProjection stats = breadRecordRepository.findUserStatsByUserId(userId);
+
+        assertNotNull(stats);
+        assertEquals(4L, stats.getTotalRecords());
+        assertEquals(3L, stats.getTotalStickers());
+        assertEquals(3L, stats.getUniqueShops());
+        assertEquals(3.5, stats.getAvgRating());
+    }
+
     private Bread saveBread() {
+        return saveBread(1);
+    }
+
+    private Bread saveBread(int stickerNumber) {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         Bread bread = Bread.builder()
-                .stickerNumber(1)
+                .stickerNumber(stickerNumber)
                 .name("bread-" + suffix)
                 .breadType(BreadType.BREAD)
                 .imageUrl("https://cdn.bread-diary.app/breads/test.webp")

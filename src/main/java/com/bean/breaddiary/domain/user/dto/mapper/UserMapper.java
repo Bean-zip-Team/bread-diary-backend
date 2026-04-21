@@ -22,12 +22,14 @@ public interface UserMapper {
             return new UserStatsResponse(
                     0L,
                     0L,
+                    0L,
                     0.0
             );
         }
 
         return new UserStatsResponse(
                 resolveCount(projection.getTotalRecords()),
+                resolveCount(projection.getTotalStickers()),
                 resolveCount(projection.getUniqueShops()),
                 roundRating(projection.getAvgRating())
         );

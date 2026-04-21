@@ -51,7 +51,7 @@ class UserServiceTest {
 
         when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
         when(breadRecordRepository.findUserStatsByUserId(userId))
-                .thenReturn(createProjection(42L, 18L, 4.25));
+                .thenReturn(createProjection(42L, 15L, 18L, 4.25));
 
         UserMeResponse actual = userService.getCurrentUserProfile(userId);
 
@@ -60,6 +60,7 @@ class UserServiceTest {
         assertEquals("bread@toss.im", actual.getEmail());
         assertNotNull(actual.getStats());
         assertEquals(42L, actual.getStats().getTotalRecords());
+        assertEquals(15L, actual.getStats().getTotalStickers());
         assertEquals(18L, actual.getStats().getUniqueShops());
         assertEquals(4.3, actual.getStats().getAvgRating());
 
@@ -72,11 +73,12 @@ class UserServiceTest {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
 
         when(breadRecordRepository.findUserStatsByUserId(userId))
-                .thenReturn(createProjection(null, null, null));
+                .thenReturn(createProjection(null, null, null, null));
 
         UserStatsResponse actual = userService.getUserStats(userId);
 
         assertEquals(0L, actual.getTotalRecords());
+        assertEquals(0L, actual.getTotalStickers());
         assertEquals(0L, actual.getUniqueShops());
         assertEquals(0.0, actual.getAvgRating());
     }
@@ -96,11 +98,21 @@ class UserServiceTest {
         assertNotNull(exception.getReason());
     }
 
-    private UserStatsProjection createProjection(Long totalRecords, Long uniqueShops, Double avgRating) {
+    private UserStatsProjection createProjection(
+            Long totalRecords,
+            Long totalStickers,
+            Long uniqueShops,
+            Double avgRating
+    ) {
         return new UserStatsProjection() {
             @Override
             public Long getTotalRecords() {
                 return totalRecords;
+            }
+
+            @Override
+            public Long getTotalStickers() {
+                return totalStickers;
             }
 
             @Override
