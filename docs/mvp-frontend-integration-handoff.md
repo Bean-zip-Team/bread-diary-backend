@@ -139,27 +139,49 @@ Purpose:
 - Decide logout API policy.
 - Avoid changing unrelated bread/breadrecord flows.
 
+## Required Work Order
+
+Follow this order before implementing anything new. Other teammates may already have
+merged overlapping work into `develop`, so the next branch must first reconcile the
+latest code and only then modify what is still missing.
+
+1. Check current branch status with `git status --short --branch`.
+2. Fetch latest `develop` from origin.
+3. Inspect recent `develop` changes related to auth, user, token, global config,
+   global error handling, CORS, tests, and docs.
+4. Create or switch to `feat/mvp-frontend-integration`.
+5. Merge `origin/develop` into the work branch using the safest non-destructive
+   workflow.
+6. If conflicts occur, list conflicted files first.
+7. Resolve only conflicts inside user, auth, token, global auth/config/common,
+   and related tests/docs.
+8. Do not directly modify bread, breadrecord, upload, or s3. If those files
+   conflict or appear necessary, stop and explain why.
+9. After the merge, reread the current implementation instead of relying on this
+   handoff alone.
+10. Classify each auth/user/token item as done, partially done, or missing based
+    on code and tests.
+11. Update docs first so the MVP status reflects the merged code.
+12. Implement only the remaining user/auth/token/frontend integration blockers.
+13. Run focused auth/user/token tests.
+14. Run the full test suite if feasible.
+15. Summarize what was verified, what still needs real Toss E2E, and what must
+    not be touched by this branch.
+
 ## Next Work Priority
 
-1. Check current branch status and latest `develop`.
-2. Create or switch to `feat/mvp-frontend-integration`.
-3. Read:
-   - `AGENTS.md`
-   - `build.gradle`
-   - `src/main/java/com/bean/breaddiary/domain/auth/**`
-   - `src/main/java/com/bean/breaddiary/domain/user/**`
-   - `src/main/java/com/bean/breaddiary/global/config/**`
-   - `src/main/java/com/bean/breaddiary/global/interceptor/**`
-   - `src/test/java/com/bean/breaddiary/domain/auth/controller/AuthControllerTest.java`
-   - `src/test/java/com/bean/breaddiary/domain/user/controller/UserControllerTest.java`
-4. Verify CORS status.
-5. Decide whether `/auth/logout` should:
-   - require access token plus refresh token, or
-   - be whitelisted and use refresh token only, or
-   - use access token/session id only.
-6. Prepare frontend API contract examples.
-7. Run auth/user focused tests.
-8. Run full test suite if feasible.
+1. Confirm frontend auth/user contract after merging latest `develop`.
+2. Confirm whether global CORS already exists; add or adjust only if missing.
+3. Confirm whether global error handling already exists; add or adjust only if
+   missing and keep the existing response format safe.
+4. Confirm `/auth/toss` request and response fields match frontend camelCase.
+5. Decide final `/auth/logout` policy before changing code:
+   access token plus refresh token, refresh token only, or access token/session id only.
+6. Verify JWT settings and Toss settings are documented for local and deployed
+   environments.
+7. Prepare Toss E2E test steps using a real frontend authorization code.
+8. Verify `/auth/refresh`, `/auth/logout`, `/users/me`, withdrawal, and webhook
+   behavior with existing tests and manual calls where possible.
 
 ## Frontend Contract Snapshot
 
@@ -288,6 +310,8 @@ Important:
 We are continuing bread-diary-backend from the handoff in docs/mvp-frontend-integration-handoff.md.
 First read AGENTS.md and docs/mvp-frontend-integration-handoff.md.
 Then check git status and current branch.
+Fetch latest origin/develop, inspect relevant changes, create or switch to feat/mvp-frontend-integration,
+and merge origin/develop before editing code.
 Do not modify bread/breadrecord/upload/s3 directly.
 Focus on user/auth/token and frontend integration blockers.
 Before editing code, summarize:
@@ -295,5 +319,7 @@ Before editing code, summarize:
 2. files read
 3. exact files proposed for modification
 4. reason for each modification
+After merging develop, classify auth/user/token items as done, partially done, or missing.
+Update docs first, then implement only remaining user/auth/token work.
 Start by planning CORS, logout policy, global error handling scope, and Toss E2E readiness.
 ```
