@@ -6,6 +6,8 @@
 
 대상 독자는 백엔드 팀원, 다음 브랜치 작업자, 프론트 협업자다. 이 문서는 코드 기준으로 확인된 내용만 적고, 실제 비밀값은 포함하지 않는다.
 
+auth/user API의 최신 request/response 계약은 `docs/auth-user-api-contract.md`를 기준으로 본다. 이 문서는 로컬 실행과 수동 검증 절차를 중심으로 유지한다.
+
 ## 2. 현재 실행 전제
 
 | 항목 | 현재 기준 |
@@ -207,6 +209,8 @@ curl.exe -i "http://localhost:8080/breads/catalog/<BREAD_ID>"
 ```
 
 ### Auth/User API
+
+상세 field naming, 응답 구조, 에러 code는 `docs/auth-user-api-contract.md`를 기준으로 한다. 아래 내용은 로컬에서 호출 순서와 조건을 확인하기 위한 요약이다.
 
 | API | 목적 | 인증 | 로컬 단독 검증 | 막는 요소 |
 | --- | --- | --- | --- | --- |

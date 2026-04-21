@@ -6,6 +6,8 @@
 
 범위는 `auth`, `user`, `token`, 인증 인터셉터, access log 확인까지다. `bread`, `breadrecord`, `s3`, `upload` 도메인 로직은 수정하지 않았고, 공개/선택 인증 endpoint 확인을 위해 호출만 했다.
 
+이 문서는 과거 수동 검증 기록이다. 최신 auth/user API 계약은 `docs/auth-user-api-contract.md`를 기준으로 보고, 실제 Toss E2E 준비는 `docs/toss-e2e-checklist.md`를 기준으로 본다.
+
 ## 2. 최신 상태 메모
 
 이 문서는 `test/66-auth-manual-verification` 브랜치에서 수행한 당시 수동 검증 기록이다. 이후 `fix/72-auth-logout-request-contract`에서 `/auth/logout` 계약이 보완되었다.
@@ -19,7 +21,7 @@
 | `{ "refreshToken": "..." }` | 허용 |
 | `application/x-www-form-urlencoded` | 사용하지 않음, `415 INVALID_REQUEST` |
 
-실제 Toss E2E 준비 체크리스트는 `docs/toss-e2e-checklist.md`를 기준으로 본다.
+최신 auth/user API 계약은 `docs/auth-user-api-contract.md`를 기준으로 보고, 실제 Toss E2E 준비 체크리스트는 `docs/toss-e2e-checklist.md`를 기준으로 본다.
 
 ## 3. develop 반영 상태
 
@@ -36,7 +38,7 @@ git merge --no-edit origin/develop
 
 | 파일 | 확인한 내용 |
 | --- | --- |
-| `docs/codex-prompts-user/mvp-backend-readiness-plan.md` | auth/user 수동 검증, Toss E2E, webhook, logout 확인이 남은 작업으로 정리되어 있음 |
+| `docs/auth-user-api-contract.md` | 최신 auth/user API 계약, camelCase 기준, logout 최신 계약 확인 |
 | `docs/local-env-and-e2e-guide.md` | local profile, Docker MySQL, JWT/Toss/env, 수동 호출 절차 기준 확인 |
 | `src/main/resources/application.yml` | JWT 기본 placeholder, Toss placeholder, CORS, 운영 DB/S3 설정 구조 확인 |
 | `src/main/resources/application-local.yml` | 로컬 MySQL `localhost:3306/breaddiary`, `appuser`, MySQL driver, `ddl-auto=update` 확인 |
@@ -147,7 +149,7 @@ http://localhost:8080/v3/api-docs
 | `POST /auth/refresh` 정상 refresh token | `200` | access/refresh 모두 재발급 |
 | `POST /auth/refresh` 이전 refresh token 재사용 | `409` | `이미 회전된 리프레시 토큰입니다.` |
 | `POST /auth/logout` 토큰 없음 | `401` | 보호 API로 차단 |
-| `POST /auth/logout` `{}` body + 정상 access token | `400` | 당시 결과. 최신 구현에서는 `200`, `loggedOut=true` |
+| `POST /auth/logout` `{}` body + 정상 access token | 당시에는 validation 실패 | 보존 기록. 최신 구현에서는 `200`, `loggedOut=true` |
 | `POST /auth/logout` body 없음 + `Content-Type: application/json` + 정상 access token | `200` | `loggedOut=true` |
 | 로그아웃 후 `POST /auth/refresh` | `401` | 세션 없음으로 실패 |
 | `POST /auth/toss` blank body 값 | `400` | validation 실패 |

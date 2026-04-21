@@ -6,6 +6,8 @@
 
 이번 문서는 실로그인 성공 결과 기록이 아니다. 현재 백엔드에는 Toss 로그인 흐름이 구현되어 있지만, 실제 성공 검증은 프론트 redirect/referrer, Toss developer console 설정, 배포 URL, 외부 secret/env가 준비된 뒤에만 가능하다.
 
+auth/user API field naming, logout 계약, 공통 에러 응답은 `docs/auth-user-api-contract.md`를 기준으로 한다. 이 문서는 Toss E2E 준비와 실행 순서에 집중한다.
+
 상태 표기는 다음 기준을 사용한다.
 
 | 상태 | 의미 |
@@ -222,6 +224,8 @@ x-toss-webhook-secret: <TOSS_WEBHOOK_SECRET>
 `eventType`은 현재 `UNLINK`, `WITHDRAWAL_TERMS`, `WITHDRAWAL_TOSS`를 사용한다.
 
 ## 6. logout 최신 계약
+
+상세 계약 기준은 `docs/auth-user-api-contract.md`다. Toss E2E에서 확인해야 할 logout 요약은 아래와 같다.
 
 `POST /auth/logout`은 보호 API이므로 Bearer access token이 필요하다.
 
