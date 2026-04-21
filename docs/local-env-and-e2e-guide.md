@@ -168,7 +168,7 @@ Bearer access token이 필요하다.
 | --- | --- | --- |
 | `GET` | `/users/me` | 현재 사용자 프로필/통계 |
 | `DELETE` | `/users/me` | 회원탈퇴 |
-| `POST` | `/auth/logout` | empty body면 현재 access token의 session 종료 |
+| `POST` | `/auth/logout` | body 없음/`{}`이면 현재 access token의 session 종료, refreshToken body도 허용 |
 | `GET` | `/breads/{recordId}` | 기록 상세 |
 | `POST` | `/breads` | 기록 생성. multipart/S3 필요 |
 | `POST` | `/breads/new` | 신규 빵 + 기록 생성. multipart/S3 필요 |
@@ -248,7 +248,15 @@ curl.exe -i -X POST "http://localhost:8080/auth/refresh" `
 
 #### `POST /auth/logout`
 
-현재 정책은 empty body + Bearer access token으로 현재 session을 종료하는 방식이다. refresh token body도 호환 경로로 남아 있다.
+최신 정책은 Bearer access token으로 현재 session을 종료하는 방식이다. body 없음과 `{}` body를 모두 허용하며, refresh token body도 호환 경로로 남아 있다.
+
+| 요청 형태 | 상태 |
+| --- | --- |
+| Bearer access token + body 없음 | 허용 |
+| Bearer access token + `{}` | 허용 |
+| `{ "refreshToken": "..." }` | 허용 |
+| `application/x-www-form-urlencoded` | 사용하지 않음 |
+| unsupported content type | `415 INVALID_REQUEST` |
 
 ```powershell
 curl.exe -i -X POST "http://localhost:8080/auth/logout" `
@@ -347,17 +355,17 @@ curl.exe -i "http://localhost:8080/users/me" `
 | `GET /breads/catalog/{breadId}` | 구현됨 | 일부 controller 테스트 존재 | 조건부 가능 | 실제 `breadId` | 선택 인증 |
 | `POST /auth/toss` | 구현됨 | `AuthControllerTest`, `AuthServiceTest` | 조건부 가능 | 실제 Toss code/referrer | 실연동 미완료 |
 | `POST /auth/refresh` | 구현됨 | 단위/동시성/MySQL 통합 테스트 | 조건부 가능 | 유효한 refresh token 필요 | Toss 로그인 성공 후 완전 확인 |
-| `POST /auth/logout` | 구현됨 | controller/service 테스트 | 조건부 가능 | 유효한 access token/session 필요 | empty body 지원 |
+| `POST /auth/logout` | 구현됨 | controller/service 테스트 | 조건부 가능 | 유효한 access token/session 필요 | empty body, `{}`, refreshToken body 지원 |
 | `POST /auth/webhook/toss-unlink` | 구현됨 | controller/service 테스트 | 조건부 가능 | webhook secret, user 데이터 | eventType 분기 |
 | `GET /users/me` | 구현됨 | `UserControllerTest` | 조건부 가능 | 유효한 access token/session 필요 | JWT 기준 |
-| Access logging | 구현됨 | `AccessLogFilterTest` | 가능 | 서버 기동 | requestId는 로그에만 남음 |
+| Access logging | 구현됨 | `AccessLogFilterTest` | 가능 | 서버 기동 | requestId는 access log와 `X-Request-Id` 응답 헤더에 남음 |
 
 ## 10. 알려진 제한 사항 / TODO
 
 - Dev token 발급용 실제 controller는 코드상 확인되지 않았다. 수동 auth/user 검증을 쉽게 하려면 별도 dev token 전략이나 seed 전략이 필요할 수 있다.
 - Toss 실로그인 성공 검증은 프론트에서 실제 `authorizationCode`와 `referrer`를 받아와야 가능하다.
 - S3가 필요한 multipart 기록 생성 API는 로컬 S3 mock 또는 테스트용 AWS 설정 없이는 완전한 수동 검증이 어렵다.
-- `requestId`는 access log에만 남고 응답 헤더로 내려가지 않는다. 프론트/백엔드 공동 디버깅을 위해 응답 헤더 노출 여부는 별도 결정이 필요하다.
+- `requestId`는 access log와 `X-Request-Id` 응답 헤더에 함께 남는다. 프론트에서 읽어야 하면 CORS exposed header 설정을 확인한다.
 - `application.yml`의 민감값 형태 설정은 env/secret 기반으로 분리하는 것이 안전하다.
 - `/v1` prefix는 현재 controller 코드 기준으로 붙어 있지 않다. Gateway/Nginx에서 처리할지, Spring에서 처리할지는 별도 결정이 필요하다.
 
