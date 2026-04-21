@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
@@ -61,6 +62,38 @@ class AccessLogFilterTest {
         assertTrue(accessLog.matches(".*durationMs=\\d+.*"));
         assertTrue(accessLog.contains("requestId=front-request-1"));
         assertTrue(accessLog.contains("clientIp=203.0.113.10"));
+        assertEquals("front-request-1", response.getHeader(RequestLogContext.REQUEST_ID_HEADER));
+        assertEquals("front-request-1", request.getAttribute(RequestLogContext.REQUEST_ID_ATTRIBUTE));
+    }
+
+    @Test
+    void doFilterSanitizesRequestIdForResponseAttributeAndAccessLog() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/users/me");
+        request.addHeader("X-Request-Id", " front request!\r\nid:1 ");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        accessLogFilter.doFilter(request, response, passThroughChain());
+
+        String expectedRequestId = "frontrequestid:1";
+        String accessLog = singleLogMessage();
+        assertEquals(expectedRequestId, response.getHeader(RequestLogContext.REQUEST_ID_HEADER));
+        assertEquals(expectedRequestId, request.getAttribute(RequestLogContext.REQUEST_ID_ATTRIBUTE));
+        assertTrue(accessLog.contains("requestId=" + expectedRequestId));
+    }
+
+    @Test
+    void doFilterGeneratesRequestIdWhenHeaderIsMissing() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/users/me");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        accessLogFilter.doFilter(request, response, passThroughChain());
+
+        String responseRequestId = response.getHeader(RequestLogContext.REQUEST_ID_HEADER);
+        UUID.fromString(responseRequestId);
+
+        String accessLog = singleLogMessage();
+        assertEquals(responseRequestId, request.getAttribute(RequestLogContext.REQUEST_ID_ATTRIBUTE));
+        assertTrue(accessLog.contains("requestId=" + responseRequestId));
     }
 
     @Test

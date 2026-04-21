@@ -9,7 +9,9 @@ import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
 import com.bean.breaddiary.domain.auth.entity.UserSession;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
@@ -43,79 +46,174 @@ public class AuthService {
 
     @Transactional
     public AuthTokenResponse loginWithToss(TossLoginRequest request) {
-        LocalDateTime issuedAt = LocalDateTime.now();
+        long startNanos = System.nanoTime();
+        UUID userId = null;
+        UUID sessionId = null;
 
-        TossAuthClient.TossGenerateTokenSuccess tossToken =
-                tossAuthClient.exchangeAuthorizationCode(
-                        request.getAuthorizationCode(),
-                        request.getReferrer()
-                );
-        TossAuthClient.TossLoginMeSuccess tossUserInfo =
-                tossAuthClient.getUserInfo(tossToken.accessToken());
+        try {
+            LocalDateTime issuedAt = LocalDateTime.now();
 
-        ResolvedTossProfile tossProfile = resolveTossProfile(tossUserInfo);
-        UserResolution userResolution = findOrCreateUser(tossProfile);
+            TossAuthClient.TossGenerateTokenSuccess tossToken =
+                    tossAuthClient.exchangeAuthorizationCode(
+                            request.getAuthorizationCode(),
+                            request.getReferrer()
+                    );
+            TossAuthClient.TossLoginMeSuccess tossUserInfo =
+                    tossAuthClient.getUserInfo(tossToken.accessToken());
 
-        UserSession userSession = createPendingSession(userResolution.user(), issuedAt);
+            ResolvedTossProfile tossProfile = resolveTossProfile(tossUserInfo);
+            UserResolution userResolution = findOrCreateUser(tossProfile);
+            userId = userResolution.user().getId();
 
-        return issueTokens(
-                userResolution.user(),
-                userSession,
-                userResolution.newUser(),
-                issuedAt
-        );
+            UserSession userSession = createPendingSession(userResolution.user(), issuedAt);
+            sessionId = userSession.getId();
+
+            AuthTokenResponse response = issueTokens(
+                    userResolution.user(),
+                    userSession,
+                    userResolution.newUser(),
+                    issuedAt
+            );
+
+            log.info(
+                    "AUTH action=login result=success requestId={} userId={} sessionId={} status={} newUser={} durationMs={}",
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userId),
+                    valueOrDefault(sessionId),
+                    HttpStatus.OK.value(),
+                    userResolution.newUser(),
+                    durationMs(startNanos)
+            );
+
+            return response;
+        } catch (ResponseStatusException exception) {
+            logAuthFailure("login", userId, sessionId, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedAuthFailure("login", userId, sessionId, exception, startNanos);
+            throw exception;
+        }
     }
 
     @Transactional
     public AuthTokenResponse refresh(RefreshTokenRequest request) {
-        String refreshToken = requireText(request.getRefreshToken(), "리프레시 토큰이 필요합니다.");
-        JwtTokenProvider.JwtTokenClaims claims = parseRefreshToken(refreshToken);
-        LocalDateTime now = LocalDateTime.now();
+        long startNanos = System.nanoTime();
+        UUID userId = null;
+        UUID sessionId = null;
 
-        UserSession userSession = userSessionService.findSessionForUpdate(claims.sessionId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "유효한 세션이 없습니다."
-                ));
+        try {
+            String refreshToken = requireText(request.getRefreshToken(), "리프레시 토큰이 필요합니다.");
+            JwtTokenProvider.JwtTokenClaims claims = parseRefreshToken(refreshToken);
+            userId = claims.userId();
+            sessionId = claims.sessionId();
+            LocalDateTime now = LocalDateTime.now();
 
-        validateRefreshTokenState(userSession, claims, refreshToken, now, true);
+            UserSession userSession = userSessionService.findSessionForUpdate(claims.sessionId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.UNAUTHORIZED,
+                            "유효한 세션이 없습니다."
+                    ));
 
-        User user = getActiveUser(userSession.getUserId());
+            validateRefreshTokenState(userSession, claims, refreshToken, now, true);
 
-        return issueTokens(user, userSession, false, now);
+            User user = getActiveUser(userSession.getUserId());
+
+            AuthTokenResponse response = issueTokens(user, userSession, false, now);
+
+            log.info(
+                    "AUTH action=refresh result=success requestId={} userId={} sessionId={} status={} durationMs={}",
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(user.getId()),
+                    valueOrDefault(userSession.getId()),
+                    HttpStatus.OK.value(),
+                    durationMs(startNanos)
+            );
+
+            return response;
+        } catch (ResponseStatusException exception) {
+            logAuthFailure("refresh", userId, sessionId, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedAuthFailure("refresh", userId, sessionId, exception, startNanos);
+            throw exception;
+        }
     }
 
     @Transactional
     public LogoutResponse logout(LogoutRequest request) {
-        String refreshToken = requireText(request.getRefreshToken(), "리프레시 토큰이 필요합니다.");
-        JwtTokenProvider.JwtTokenClaims claims = parseRefreshToken(refreshToken);
-        LocalDateTime now = LocalDateTime.now();
+        long startNanos = System.nanoTime();
+        UUID userId = null;
+        UUID sessionId = null;
 
-        UserSession userSession = userSessionService.findSessionForUpdate(claims.sessionId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "로그아웃할 세션이 없습니다."
-                ));
+        try {
+            String refreshToken = requireText(request.getRefreshToken(), "리프레시 토큰이 필요합니다.");
+            JwtTokenProvider.JwtTokenClaims claims = parseRefreshToken(refreshToken);
+            userId = claims.userId();
+            sessionId = claims.sessionId();
+            LocalDateTime now = LocalDateTime.now();
 
-        validateRefreshTokenState(userSession, claims, refreshToken, now, false);
-        userSessionService.revokeSession(userSession, now);
+            UserSession userSession = userSessionService.findSessionForUpdate(claims.sessionId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.UNAUTHORIZED,
+                            "로그아웃할 세션이 없습니다."
+                    ));
 
-        return new LogoutResponse(true);
+            validateRefreshTokenState(userSession, claims, refreshToken, now, false);
+            userSessionService.revokeSession(userSession, now);
+
+            log.info(
+                    "AUTH action=logout result=success requestId={} userId={} sessionId={} status={} durationMs={}",
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userSession.getUserId()),
+                    valueOrDefault(userSession.getId()),
+                    HttpStatus.OK.value(),
+                    durationMs(startNanos)
+            );
+
+            return new LogoutResponse(true);
+        } catch (ResponseStatusException exception) {
+            logAuthFailure("logout", userId, sessionId, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedAuthFailure("logout", userId, sessionId, exception, startNanos);
+            throw exception;
+        }
     }
 
     @Transactional
     public LogoutResponse logoutCurrentSession(UUID sessionId) {
-        LocalDateTime now = LocalDateTime.now();
+        long startNanos = System.nanoTime();
+        UUID userId = null;
 
-        UserSession userSession = userSessionService.findSessionForUpdate(sessionId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "로그아웃할 세션이 없습니다."
-                ));
+        try {
+            LocalDateTime now = LocalDateTime.now();
 
-        userSessionService.revokeSession(userSession, now);
+            UserSession userSession = userSessionService.findSessionForUpdate(sessionId)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.UNAUTHORIZED,
+                            "로그아웃할 세션이 없습니다."
+                    ));
 
-        return new LogoutResponse(true);
+            userId = userSession.getUserId();
+            userSessionService.revokeSession(userSession, now);
+
+            log.info(
+                    "AUTH action=logoutCurrentSession result=success requestId={} userId={} sessionId={} status={} durationMs={}",
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userId),
+                    valueOrDefault(userSession.getId()),
+                    HttpStatus.OK.value(),
+                    durationMs(startNanos)
+            );
+
+            return new LogoutResponse(true);
+        } catch (ResponseStatusException exception) {
+            logAuthFailure("logoutCurrentSession", userId, sessionId, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedAuthFailure("logoutCurrentSession", userId, sessionId, exception, startNanos);
+            throw exception;
+        }
     }
 
     private AuthTokenResponse issueTokens(
@@ -342,6 +440,66 @@ public class AuthService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 알고리즘을 찾을 수 없습니다.", exception);
         }
+    }
+
+    private void logAuthFailure(
+            String action,
+            UUID userId,
+            UUID sessionId,
+            ResponseStatusException exception,
+            long startNanos
+    ) {
+        if (exception.getStatusCode().is5xxServerError()) {
+            log.error(
+                    "AUTH action={} result=fail requestId={} userId={} sessionId={} status={} exceptionType={} durationMs={}",
+                    action,
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userId),
+                    valueOrDefault(sessionId),
+                    exception.getStatusCode().value(),
+                    exception.getClass().getSimpleName(),
+                    durationMs(startNanos)
+            );
+            return;
+        }
+
+        log.warn(
+                "AUTH action={} result=fail requestId={} userId={} sessionId={} status={} exceptionType={} durationMs={}",
+                action,
+                RequestLogContext.currentRequestIdOrDefault(),
+                valueOrDefault(userId),
+                valueOrDefault(sessionId),
+                exception.getStatusCode().value(),
+                exception.getClass().getSimpleName(),
+                durationMs(startNanos)
+        );
+    }
+
+    private void logUnexpectedAuthFailure(
+            String action,
+            UUID userId,
+            UUID sessionId,
+            RuntimeException exception,
+            long startNanos
+    ) {
+        log.error(
+                "AUTH action={} result=fail requestId={} userId={} sessionId={} status={} exceptionType={} durationMs={}",
+                action,
+                RequestLogContext.currentRequestIdOrDefault(),
+                valueOrDefault(userId),
+                valueOrDefault(sessionId),
+                "unexpected",
+                exception.getClass().getSimpleName(),
+                durationMs(startNanos)
+        );
+    }
+
+    private long durationMs(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
+    }
+
+    private String valueOrDefault(Object value) {
+        return value == null ? "-" : value.toString();
     }
 
     private record ResolvedTossProfile(

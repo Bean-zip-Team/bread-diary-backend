@@ -1,5 +1,6 @@
 package com.bean.breaddiary.global.common;
 
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -79,11 +80,12 @@ public class GlobalExceptionHandler {
         String message = "요청 형식이 올바르지 않습니다.";
 
         log.warn(
-                "Invalid request: code={} method={} path={} message={}",
+                "Invalid request: code={} method={} path={} requestId={} errorType={}",
                 "INVALID_REQUEST",
                 request.getMethod(),
                 request.getRequestURI(),
-                exception.getMessage()
+                RequestLogContext.currentRequestIdOrDefault(),
+                exception.getClass().getSimpleName()
         );
 
         return ResponseEntity
@@ -97,11 +99,12 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         log.error(
-                "Unexpected server error: code={} method={} path={}",
+                "Unexpected server error: code={} method={} path={} requestId={} exceptionType={}",
                 "INTERNAL_ERROR",
                 request.getMethod(),
                 request.getRequestURI(),
-                exception
+                RequestLogContext.currentRequestIdOrDefault(),
+                exception.getClass().getSimpleName()
         );
 
         return ResponseEntity
@@ -115,11 +118,12 @@ public class GlobalExceptionHandler {
             Exception exception
     ) {
         log.warn(
-                "Validation failed: code={} method={} path={} message={}",
+                "Validation failed: code={} method={} path={} requestId={} errorType={}",
                 "VALIDATION_FAILED",
                 request.getMethod(),
                 request.getRequestURI(),
-                exception.getMessage()
+                RequestLogContext.currentRequestIdOrDefault(),
+                exception.getClass().getSimpleName()
         );
 
         return ResponseEntity
@@ -216,22 +220,25 @@ public class GlobalExceptionHandler {
     ) {
         if (statusCode.is5xxServerError()) {
             log.error(
-                    "Request failed: code={} method={} path={} message={}",
+                    "Request failed: code={} method={} path={} requestId={} message={} exceptionType={}",
                     code,
                     request.getMethod(),
                     request.getRequestURI(),
+                    RequestLogContext.currentRequestIdOrDefault(),
                     message,
-                    exception
+                    exception.getClass().getSimpleName()
             );
             return;
         }
 
         log.warn(
-                "Request failed: code={} method={} path={} message={}",
+                "Request failed: code={} method={} path={} requestId={} message={} exceptionType={}",
                 code,
                 request.getMethod(),
                 request.getRequestURI(),
-                message
+                RequestLogContext.currentRequestIdOrDefault(),
+                message,
+                exception.getClass().getSimpleName()
         );
     }
 }
