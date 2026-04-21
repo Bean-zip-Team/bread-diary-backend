@@ -1,6 +1,7 @@
 package com.bean.breaddiary.global.filter;
 
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +24,6 @@ import java.util.regex.Pattern;
 public class AccessLogFilter extends OncePerRequestFilter {
 
     private static final String ACCESS_LOG_PREFIX = "ACCESS";
-    private static final String REQUEST_ID_HEADER = "X-Request-Id";
     private static final String FORWARDED_FOR_HEADER = "X-Forwarded-For";
     private static final String DEFAULT_VALUE = "-";
     private static final int MAX_REQUEST_ID_LENGTH = 80;
@@ -58,6 +58,10 @@ public class AccessLogFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        String requestId = resolveRequestId(request);
+        request.setAttribute(RequestLogContext.REQUEST_ID_ATTRIBUTE, requestId);
+        response.setHeader(RequestLogContext.REQUEST_ID_HEADER, requestId);
+
         long startNanos = System.nanoTime();
         boolean failed = false;
 
@@ -89,7 +93,7 @@ public class AccessLogFilter extends OncePerRequestFilter {
                 durationMs,
                 resolveAttribute(request, AuthRequestAttributes.USER_ID),
                 resolveAttribute(request, AuthRequestAttributes.SESSION_ID),
-                resolveRequestId(request),
+                resolveAttribute(request, RequestLogContext.REQUEST_ID_ATTRIBUTE),
                 resolveClientIp(request)
         );
     }
@@ -115,7 +119,7 @@ public class AccessLogFilter extends OncePerRequestFilter {
     }
 
     private String resolveRequestId(HttpServletRequest request) {
-        String requestId = request.getHeader(REQUEST_ID_HEADER);
+        String requestId = request.getHeader(RequestLogContext.REQUEST_ID_HEADER);
 
         if (!StringUtils.hasText(requestId)) {
             return UUID.randomUUID().toString();

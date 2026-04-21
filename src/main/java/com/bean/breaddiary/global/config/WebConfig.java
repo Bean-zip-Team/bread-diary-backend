@@ -1,6 +1,7 @@
 package com.bean.breaddiary.global.config;
 
 import com.bean.breaddiary.global.interceptor.AuthInterceptor;
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -37,7 +38,7 @@ public class WebConfig implements WebMvcConfigurer {
                         HttpMethod.OPTIONS.name()
                 )
                 .allowedHeaders("*")
-                .exposedHeaders("Location")
+                .exposedHeaders("Location", RequestLogContext.REQUEST_ID_HEADER)
                 .maxAge(3600);
     }
 }

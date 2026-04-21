@@ -11,7 +11,9 @@ import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
+import com.bean.breaddiary.global.logging.RequestLogContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserWithdrawalService {
@@ -41,14 +44,35 @@ public class UserWithdrawalService {
 
     @Transactional
     public UserWithdrawalResponse withdrawCurrentUser(UUID userId) {
-        User user = userService.getUserById(userId);
+        long startNanos = System.nanoTime();
 
-        if (StringUtils.hasText(user.getTossUserKey())) {
-            tossAuthClient.unlinkByUserKey(user.getTossUserKey());
+        try {
+            User user = userService.getUserById(userId);
+            boolean tossLinked = StringUtils.hasText(user.getTossUserKey());
+
+            if (tossLinked) {
+                tossAuthClient.unlinkByUserKey(user.getTossUserKey());
+            }
+
+            hardDeleteUserData(user);
+
+            log.info(
+                    "USER action=withdrawal result=success requestId={} userId={} status={} tossLinked={} durationMs={}",
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userId),
+                    HttpStatus.OK.value(),
+                    tossLinked,
+                    durationMs(startNanos)
+            );
+
+            return new UserWithdrawalResponse(true);
+        } catch (ResponseStatusException exception) {
+            logUserFailure("withdrawal", userId, null, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedUserFailure("withdrawal", userId, null, exception, startNanos);
+            throw exception;
         }
-
-        hardDeleteUserData(user);
-        return new UserWithdrawalResponse(true);
     }
 
     @Transactional
@@ -56,20 +80,37 @@ public class UserWithdrawalService {
             String requestWebhookSecret,
             TossWebhookRequest request
     ) {
-        validateWebhookSecret(requestWebhookSecret);
+        long startNanos = System.nanoTime();
+        UUID userId = null;
+        TossWebhookEventType eventType = request == null ? null : request.getEventType();
 
-        Optional<User> user = userRepository.findByTossUserKey(normalizeText(request.getUserKey()));
-        if (user.isEmpty()) {
+        try {
+            validateWebhookSecret(requestWebhookSecret);
+
+            Optional<User> user = userRepository.findByTossUserKey(normalizeText(request.getUserKey()));
+            if (user.isEmpty()) {
+                logWebhookSuccess(resolveWebhookAction(eventType), null, eventType, false, startNanos);
+                return new TossWebhookResponse(true, request.getEventType());
+            }
+
+            userId = user.get().getId();
+
+            if (request.getEventType() == TossWebhookEventType.UNLINK) {
+                clearSessionsOnly(userId);
+                logWebhookSuccess("tossUnlinkWebhook", userId, eventType, true, startNanos);
+                return new TossWebhookResponse(true, request.getEventType());
+            }
+
+            hardDeleteUserData(user.get());
+            logWebhookSuccess("tossWithdrawalWebhook", userId, eventType, true, startNanos);
             return new TossWebhookResponse(true, request.getEventType());
+        } catch (ResponseStatusException exception) {
+            logUserFailure(resolveWebhookAction(eventType), userId, eventType, exception, startNanos);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedUserFailure(resolveWebhookAction(eventType), userId, eventType, exception, startNanos);
+            throw exception;
         }
-
-        if (request.getEventType() == TossWebhookEventType.UNLINK) {
-            clearSessionsOnly(user.get().getId());
-            return new TossWebhookResponse(true, request.getEventType());
-        }
-
-        hardDeleteUserData(user.get());
-        return new TossWebhookResponse(true, request.getEventType());
     }
 
     @Transactional
@@ -114,6 +155,92 @@ public class UserWithdrawalService {
                     "토스 웹훅 인증에 실패했습니다."
             );
         }
+    }
+
+    private void logWebhookSuccess(
+            String action,
+            UUID userId,
+            TossWebhookEventType eventType,
+            boolean userFound,
+            long startNanos
+    ) {
+        log.info(
+                "USER action={} result=success requestId={} userId={} status={} eventType={} userFound={} durationMs={}",
+                action,
+                RequestLogContext.currentRequestIdOrDefault(),
+                valueOrDefault(userId),
+                HttpStatus.OK.value(),
+                valueOrDefault(eventType),
+                userFound,
+                durationMs(startNanos)
+        );
+    }
+
+    private void logUserFailure(
+            String action,
+            UUID userId,
+            TossWebhookEventType eventType,
+            ResponseStatusException exception,
+            long startNanos
+    ) {
+        if (exception.getStatusCode().is5xxServerError()) {
+            log.error(
+                    "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                    action,
+                    RequestLogContext.currentRequestIdOrDefault(),
+                    valueOrDefault(userId),
+                    exception.getStatusCode().value(),
+                    valueOrDefault(eventType),
+                    durationMs(startNanos),
+                    exception
+            );
+            return;
+        }
+
+        log.warn(
+                "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                action,
+                RequestLogContext.currentRequestIdOrDefault(),
+                valueOrDefault(userId),
+                exception.getStatusCode().value(),
+                valueOrDefault(eventType),
+                durationMs(startNanos)
+        );
+    }
+
+    private void logUnexpectedUserFailure(
+            String action,
+            UUID userId,
+            TossWebhookEventType eventType,
+            RuntimeException exception,
+            long startNanos
+    ) {
+        log.error(
+                "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                action,
+                RequestLogContext.currentRequestIdOrDefault(),
+                valueOrDefault(userId),
+                "unexpected",
+                valueOrDefault(eventType),
+                durationMs(startNanos),
+                exception
+        );
+    }
+
+    private String resolveWebhookAction(TossWebhookEventType eventType) {
+        if (eventType == TossWebhookEventType.UNLINK) {
+            return "tossUnlinkWebhook";
+        }
+
+        return "tossWithdrawalWebhook";
+    }
+
+    private long durationMs(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
+    }
+
+    private String valueOrDefault(Object value) {
+        return value == null ? "-" : value.toString();
     }
 
     private String normalizeText(String value) {
