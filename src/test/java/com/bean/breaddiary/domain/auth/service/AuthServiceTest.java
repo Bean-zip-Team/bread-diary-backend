@@ -422,6 +422,27 @@ class AuthServiceTest {
         verify(userSessionService).revokeSession(eq(userSession), any(LocalDateTime.class));
     }
 
+    @Test
+    void logoutCurrentSessionRevokesSessionByAccessTokenSessionId() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440032");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440033");
+        UserSession userSession = UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .refreshTokenHash("hashed-refresh-token")
+                .currentJti("current-jti")
+                .refreshExpiresAt(LocalDateTime.of(2026, 5, 19, 10, 0))
+                .build();
+
+        when(userSessionService.findSessionForUpdate(sessionId))
+                .thenReturn(Optional.of(userSession));
+
+        LogoutResponse actual = authService.logoutCurrentSession(sessionId);
+
+        assertTrue(actual.isLoggedOut());
+        verify(userSessionService).revokeSession(eq(userSession), any(LocalDateTime.class));
+    }
+
     private String hash(String refreshToken) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

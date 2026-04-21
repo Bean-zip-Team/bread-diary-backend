@@ -10,14 +10,18 @@ import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.service.AuthService;
 import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.common.ApiResponse;
+import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -85,7 +89,7 @@ public class AuthController {
 
     @Operation(
             summary = "로그아웃",
-            description = "현재 세션의 리프레시 토큰을 검증하고 세션을 종료합니다."
+            description = "Access Token의 현재 세션을 종료합니다. refreshToken이 전달되면 해당 토큰도 함께 검증합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -99,10 +103,19 @@ public class AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<LogoutResponse>> logout(
-            @Valid @RequestBody LogoutRequest request
+            @Valid @RequestBody(required = false) LogoutRequest request,
+            @Parameter(hidden = true) HttpServletRequest httpServletRequest
     ) {
+        if (request != null && StringUtils.hasText(request.getRefreshToken())) {
+            return ResponseEntity.ok(
+                    ApiResponse.success(authService.logout(request))
+            );
+        }
+
         return ResponseEntity.ok(
-                ApiResponse.success(authService.logout(request))
+                ApiResponse.success(authService.logoutCurrentSession(
+                        AuthRequestAttributes.getRequiredSessionId(httpServletRequest)
+                ))
         );
     }
 

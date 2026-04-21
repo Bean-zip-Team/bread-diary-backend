@@ -103,6 +103,21 @@ public class AuthService {
         return new LogoutResponse(true);
     }
 
+    @Transactional
+    public LogoutResponse logoutCurrentSession(UUID sessionId) {
+        LocalDateTime now = LocalDateTime.now();
+
+        UserSession userSession = userSessionService.findSessionForUpdate(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "로그아웃할 세션이 없습니다."
+                ));
+
+        userSessionService.revokeSession(userSession, now);
+
+        return new LogoutResponse(true);
+    }
+
     private AuthTokenResponse issueTokens(
             User user,
             UserSession userSession,
