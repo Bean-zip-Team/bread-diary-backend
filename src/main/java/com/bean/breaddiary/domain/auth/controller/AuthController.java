@@ -103,7 +103,7 @@ public class AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<LogoutResponse>> logout(
-            @Valid @RequestBody(required = false) LogoutRequest request,
+            @RequestBody(required = false) LogoutRequest request,
             @Parameter(hidden = true) HttpServletRequest httpServletRequest
     ) {
         if (request != null && StringUtils.hasText(request.getRefreshToken())) {

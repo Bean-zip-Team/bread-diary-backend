@@ -10,6 +10,7 @@ import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.bean.breaddiary.domain.auth.service.AuthService;
 import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
+import com.bean.breaddiary.global.common.GlobalExceptionHandler;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +48,7 @@ class AuthControllerTest {
         userWithdrawalService = mock(UserWithdrawalService.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new AuthController(authService, userWithdrawalService))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
     }
@@ -197,6 +200,40 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.logged_out").doesNotExist());
 
         verify(authService).logoutCurrentSession(sessionId);
+    }
+
+    @Test
+    void logoutAllowsEmptyJsonObjectAndUsesAuthenticatedSession() throws Exception {
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440021");
+        when(authService.logoutCurrentSession(sessionId))
+                .thenReturn(new LogoutResponse(true));
+
+        mockMvc.perform(post("/auth/logout")
+                        .requestAttr(AuthRequestAttributes.SESSION_ID, sessionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.loggedOut").value(true))
+                .andExpect(jsonPath("$.data.logged_out").doesNotExist());
+
+        verify(authService).logoutCurrentSession(sessionId);
+        verify(authService, never()).logout(any(LogoutRequest.class));
+    }
+
+    @Test
+    void logoutRejectsFormUrlEncodedRequestWithoutCallingService() throws Exception {
+        mockMvc.perform(post("/auth/logout")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("refreshToken=refresh-token")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        verify(authService, never()).logout(any(LogoutRequest.class));
+        verify(authService, never()).logoutCurrentSession(any());
     }
 
     @Test

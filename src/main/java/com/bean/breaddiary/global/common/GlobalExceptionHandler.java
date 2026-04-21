@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -90,6 +91,27 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .badRequest()
+                .body(ApiErrorResponse.failure("INVALID_REQUEST", message));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        String message = "?붿껌 ?뺤떇???щ컮瑜댁? ?딆뒿?덈떎.";
+
+        log.warn(
+                "Invalid request: code={} method={} path={} requestId={} errorType={}",
+                "INVALID_REQUEST",
+                request.getMethod(),
+                request.getRequestURI(),
+                RequestLogContext.currentRequestIdOrDefault(),
+                exception.getClass().getSimpleName()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                 .body(ApiErrorResponse.failure("INVALID_REQUEST", message));
     }
 
