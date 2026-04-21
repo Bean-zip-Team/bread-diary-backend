@@ -6,7 +6,22 @@
 
 범위는 `auth`, `user`, `token`, 인증 인터셉터, access log 확인까지다. `bread`, `breadrecord`, `s3`, `upload` 도메인 로직은 수정하지 않았고, 공개/선택 인증 endpoint 확인을 위해 호출만 했다.
 
-## 2. develop 반영 상태
+## 2. 최신 상태 메모
+
+이 문서는 `test/66-auth-manual-verification` 브랜치에서 수행한 당시 수동 검증 기록이다. 이후 `fix/72-auth-logout-request-contract`에서 `/auth/logout` 계약이 보완되었다.
+
+현재 최신 계약은 다음과 같다.
+
+| 요청 형태 | 최신 상태 |
+| --- | --- |
+| Bearer access token + body 없음 | 허용 |
+| Bearer access token + `{}` | 허용 |
+| `{ "refreshToken": "..." }` | 허용 |
+| `application/x-www-form-urlencoded` | 사용하지 않음, `415 INVALID_REQUEST` |
+
+실제 Toss E2E 준비 체크리스트는 `docs/toss-e2e-checklist.md`를 기준으로 본다.
+
+## 3. develop 반영 상태
 
 작업 시작 시 아래 순서로 최신 상태를 확인했다.
 
@@ -132,7 +147,7 @@ http://localhost:8080/v3/api-docs
 | `POST /auth/refresh` 정상 refresh token | `200` | access/refresh 모두 재발급 |
 | `POST /auth/refresh` 이전 refresh token 재사용 | `409` | `이미 회전된 리프레시 토큰입니다.` |
 | `POST /auth/logout` 토큰 없음 | `401` | 보호 API로 차단 |
-| `POST /auth/logout` `{}` body + 정상 access token | `400` | `LogoutRequest.refreshToken` validation 발생 |
+| `POST /auth/logout` `{}` body + 정상 access token | `400` | 당시 결과. 최신 구현에서는 `200`, `loggedOut=true` |
 | `POST /auth/logout` body 없음 + `Content-Type: application/json` + 정상 access token | `200` | `loggedOut=true` |
 | 로그아웃 후 `POST /auth/refresh` | `401` | 세션 없음으로 실패 |
 | `POST /auth/toss` blank body 값 | `400` | validation 실패 |
@@ -201,7 +216,7 @@ Invoke-WebRequest `
 
 ### logout
 
-중요: 현재 구현은 access token 기반 로그아웃을 할 때 `{}` body가 아니라 body를 보내지 않는 방식이어야 한다.
+최신 구현에서는 access token 기반 로그아웃을 할 때 body 없음과 `{}` body를 모두 허용한다. `Content-Type`은 `application/json`을 사용한다.
 
 ```powershell
 curl.exe -i -X POST "http://localhost:8080/auth/logout" `
@@ -251,7 +266,7 @@ Invoke-WebRequest `
 | 바로 가능 | 인증 실패 응답 | 토큰 없음/잘못된 토큰 공통 에러 확인 가능 |
 | 조건부 가능 | `/users/me` 성공 | 로컬 DB에 user/session과 유효 access token 필요 |
 | 조건부 가능 | `/auth/refresh` 성공/rotation | 로컬 DB에 user/session과 유효 refresh token/hash/currentJti 필요 |
-| 조건부 가능 | `/auth/logout` 성공 | 유효 access token 필요, body 없이 호출 필요 |
+| 조건부 가능 | `/auth/logout` 성공 | 유효 access token 필요, body 없음 또는 `{}` 허용 |
 | 조건부 가능 | webhook 성공 | `TOSS_WEBHOOK_SECRET` 설정 필요 |
 | 조건부 가능 | `DELETE /users/me` | tossUserKey가 없으면 로컬 단독 가능, tossUserKey가 있으면 Toss unlink 외부 API 필요 |
 | 현재 불가 | `/auth/toss` 실로그인 성공 | 실제 Toss authorizationCode/referrer와 Toss 설정 필요 |
@@ -282,8 +297,8 @@ HTTP 수동 호출은 `curl.exe`와 `Invoke-WebRequest`를 함께 사용했다. 
 
 ## 13. 남은 TODO
 
-- `/auth/logout`은 `{}` body를 보내면 validation 실패가 난다. 프론트에는 body 없이 호출하도록 공유해야 한다.
-- `Invoke-WebRequest`처럼 body 없이 호출하면서 `Content-Type`이 `application/x-www-form-urlencoded`로 잡히면 현재 500이 난다. 실제 클라이언트가 이런 요청을 보낼 가능성이 있으면 auth 브랜치에서 예외 처리 또는 controller signature 보완을 검토한다.
+- 해결됨: 최신 구현에서 `/auth/logout`은 body 없음, `{}`, `{ "refreshToken": "..." }`를 허용한다.
+- 해결됨: `application/x-www-form-urlencoded` 같은 unsupported content type은 `415 INVALID_REQUEST`로 응답한다. 프론트는 `application/json`을 사용한다.
 - `/dev/auth/token`은 `AuthInterceptor` whitelist에는 있지만 controller 구현은 확인되지 않았다. 수동 검증 편의가 필요하면 별도 결정이 필요하다.
 - Toss 실로그인은 프론트/Toss 콘솔/authorizationCode/referrer 준비 후 별도 E2E로 확인한다.
 - Toss userKey가 있는 앱 탈퇴는 실제 `TOSS_UNLINK_ACCESS_TOKEN`과 Toss API 성공이 있어야 완전 검증 가능하다.
