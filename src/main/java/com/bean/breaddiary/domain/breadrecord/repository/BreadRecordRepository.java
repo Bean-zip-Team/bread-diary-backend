@@ -82,6 +82,7 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
 
     @Query("""
             select count(br) as totalRecords,
+                   count(distinct br.bread.id) as totalStickers,
                    count(distinct case
                        when br.shopName is not null and trim(br.shopName) <> '' then trim(br.shopName)
                        else null

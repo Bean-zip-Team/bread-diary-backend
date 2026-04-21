@@ -81,7 +81,7 @@ class UserControllerTest {
                 "bread@toss.im",
                 "https://cdn.bread-diary.app/profiles/me.webp",
                 "I always write down my bread diary.",
-                new UserStatsResponse(42L, 18L, 4.2),
+                new UserStatsResponse(42L, 15L, 18L, 4.2),
                 PROFILE_CREATED_AT
         );
 
@@ -101,12 +101,14 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.profileImageUrl").value("https://cdn.bread-diary.app/profiles/me.webp"))
                 .andExpect(jsonPath("$.data.bio").value("I always write down my bread diary."))
                 .andExpect(jsonPath("$.data.stats.totalRecords").value(42))
+                .andExpect(jsonPath("$.data.stats.totalStickers").value(15))
                 .andExpect(jsonPath("$.data.stats.uniqueShops").value(18))
                 .andExpect(jsonPath("$.data.stats.avgRating").value(4.2))
                 .andExpect(jsonPath("$.data.createdAt").value("2026-04-01T00:00:00"))
                 .andExpect(jsonPath("$.data.profile_image_url").doesNotExist())
                 .andExpect(jsonPath("$.data.created_at").doesNotExist())
-                .andExpect(jsonPath("$.data.stats.total_records").doesNotExist());
+                .andExpect(jsonPath("$.data.stats.total_records").doesNotExist())
+                .andExpect(jsonPath("$.data.stats.total_stickers").doesNotExist());
 
         verify(userService).getCurrentUserProfile(AUTHENTICATED_USER_ID);
     }

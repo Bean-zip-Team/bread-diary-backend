@@ -18,6 +18,10 @@ public class UserStatsResponse {
     @JsonProperty("totalRecords")
     private Long totalRecords;
 
+    @Schema(description = "삭제되지 않은 기록 기준 고유 빵 스티커 수", example = "15")
+    @JsonProperty("totalStickers")
+    private Long totalStickers;
+
     @Schema(description = "삭제되지 않은 기록 기준 고유 구매처 수", example = "18")
     @JsonProperty("uniqueShops")
     private Long uniqueShops;

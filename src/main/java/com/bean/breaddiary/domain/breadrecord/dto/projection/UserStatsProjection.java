@@ -4,6 +4,8 @@ public interface UserStatsProjection {
 
     Long getTotalRecords();
 
+    Long getTotalStickers();
+
     Long getUniqueShops();
 
     Double getAvgRating();
