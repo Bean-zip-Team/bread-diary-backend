@@ -6,7 +6,8 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,14 +29,16 @@ import static org.mockito.Mockito.when;
 class BreadComplexServiceTest {
 
     private BreadService breadService;
+    private BreadTypeService breadTypeService;
     private BreadRecordService breadRecordService;
     private BreadComplexService breadComplexService;
 
     @BeforeEach
     void setUp() {
         breadService = mock(BreadService.class);
+        breadTypeService = mock(BreadTypeService.class);
         breadRecordService = mock(BreadRecordService.class);
-        breadComplexService = new BreadComplexService(breadService, breadRecordService);
+        breadComplexService = new BreadComplexService(breadService, breadTypeService, breadRecordService);
     }
 
     @Test
@@ -45,7 +49,7 @@ class BreadComplexServiceTest {
                 .id(breadId)
                 .stickerNumber(6)
                 .name("크루아상")
-                .breadType(BreadType.PASTRY)
+                .breadType(PASTRY)
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .build();
         BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of());
@@ -85,13 +89,13 @@ class BreadComplexServiceTest {
                 UUID.fromString("10000000-0000-0000-0000-000000000001"),
                 1,
                 "크루아상",
-                BreadType.PASTRY
+                PASTRY
         );
         Bread secondBread = createBread(
                 UUID.fromString("10000000-0000-0000-0000-000000000002"),
                 2,
                 "베이글",
-                BreadType.BAGEL
+                BAGEL
         );
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "1", true, 2L);
 
@@ -133,13 +137,13 @@ class BreadComplexServiceTest {
                 UUID.fromString("10000000-0000-0000-0000-000000000001"),
                 1,
                 "크루아상",
-                BreadType.PASTRY
+                PASTRY
         );
         Bread uncollectedBread = createBread(
                 UUID.fromString("10000000-0000-0000-0000-000000000002"),
                 2,
                 "베이글",
-                BreadType.BAGEL
+                BAGEL
         );
         BreadRecordCatalogStats stats = new BreadRecordCatalogStats(
                 collectedBread.getId(),
@@ -151,7 +155,8 @@ class BreadComplexServiceTest {
         Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(collectedBread.getId(), stats);
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 1L);
 
-        when(breadService.findCatalogCandidates("크루", BreadType.PASTRY))
+        when(breadTypeService.getBreadTypeByCode("PASTRY")).thenReturn(PASTRY);
+        when(breadService.findCatalogCandidates("크루", PASTRY))
                 .thenReturn(List.of(collectedBread, uncollectedBread));
         when(breadRecordService.findCatalogStatsByBreadIds(
                 userId,
@@ -168,7 +173,7 @@ class BreadComplexServiceTest {
         BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
                 "sticker_number",
                 "collected",
-                BreadType.PASTRY,
+                "PASTRY",
                 "크루",
                 null,
                 20,
@@ -176,7 +181,8 @@ class BreadComplexServiceTest {
         );
 
         assertSame(expected, actual);
-        verify(breadService).findCatalogCandidates("크루", BreadType.PASTRY);
+        verify(breadTypeService).getBreadTypeByCode("PASTRY");
+        verify(breadService).findCatalogCandidates("크루", PASTRY);
         verify(breadRecordService).findCatalogStatsByBreadIds(
                 userId,
                 List.of(collectedBread.getId(), uncollectedBread.getId())
@@ -198,7 +204,7 @@ class BreadComplexServiceTest {
                 breadId,
                 6,
                 "크루아상",
-                BreadType.PASTRY
+                PASTRY
         );
         BreadRecord record = BreadRecord.builder()
                 .userId(userId)

@@ -6,7 +6,8 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
@@ -38,6 +39,7 @@ public class BreadComplexService {
     private static final int MAX_LIMIT = 50;
 
     private final BreadService breadService;
+    private final BreadTypeService breadTypeService;
     private final BreadRecordService breadRecordService;
 
     public BreadAutocompleteResponse autocompleteBreads(String query, UUID userId) {
@@ -51,7 +53,7 @@ public class BreadComplexService {
     public BreadCatalogListResponse getBreadCatalog(
             String sort,
             String filter,
-            BreadType breadType,
+            String breadTypeCode,
             String search,
             String cursor,
             Integer limit,
@@ -60,6 +62,7 @@ public class BreadComplexService {
         String normalizedSort = normalizeSort(sort);
         String normalizedFilter = normalizeFilter(filter);
         int normalizedLimit = normalizeLimit(limit);
+        BreadType breadType = resolveBreadType(breadTypeCode);
 
         List<Bread> candidates = breadService.findCatalogCandidates(search, breadType);
         Map<UUID, BreadRecordCatalogStats> statsMap = resolveCatalogStats(userId, candidates);
@@ -109,6 +112,14 @@ public class BreadComplexService {
                 .toList();
 
         return breadRecordService.countActiveRecordsByBreadIds(userId, breadIds);
+    }
+
+    private BreadType resolveBreadType(String breadTypeCode) {
+        if (breadTypeCode == null || breadTypeCode.isBlank()) {
+            return null;
+        }
+
+        return breadTypeService.getBreadTypeByCode(breadTypeCode);
     }
 
     private Map<UUID, BreadRecordCatalogStats> resolveCatalogStats(UUID userId, List<Bread> breads) {

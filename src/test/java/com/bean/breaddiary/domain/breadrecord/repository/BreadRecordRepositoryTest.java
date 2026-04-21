@@ -1,10 +1,11 @@
 package com.bean.breaddiary.domain.breadrecord.repository;
 
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.UserStatsProjection;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -27,6 +29,14 @@ class BreadRecordRepositoryTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    private BreadType breadType;
+
+    @BeforeEach
+    void setUp() {
+        breadType = breadType(null, "BREAD", "식빵");
+        entityManager.persist(breadType);
+    }
 
     @Test
     void findUserStatsByUserIdExcludesNullAndBlankShopNames() {
@@ -98,7 +108,7 @@ class BreadRecordRepositoryTest {
         Bread bread = Bread.builder()
                 .stickerNumber(stickerNumber)
                 .name("bread-" + suffix)
-                .breadType(BreadType.BREAD)
+                .breadType(breadType)
                 .imageUrl("https://cdn.bread-diary.app/breads/test.webp")
                 .build();
 

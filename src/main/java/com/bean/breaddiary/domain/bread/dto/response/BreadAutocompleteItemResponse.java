@@ -1,6 +1,4 @@
 package com.bean.breaddiary.domain.bread.dto.response;
-
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,7 +21,7 @@ public class BreadAutocompleteItemResponse {
     private String name;
 
     @Schema(description = "빵 종류", example = "PASTRY")
-    private BreadType breadType;
+    private String breadType;
 
     @Schema(description = "도감 번호", example = "6")
     private Integer stickerNumber;

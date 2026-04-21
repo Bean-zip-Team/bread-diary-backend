@@ -3,7 +3,6 @@ package com.bean.breaddiary.domain.bread.controller;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogListResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.common.ApiResponse;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
@@ -52,7 +51,7 @@ public class BreadController {
             @Parameter(description = "수집 상태 필터: all, collected, uncollected", example = "all")
             @RequestParam(value = "filter", required = false) String filter,
             @Parameter(description = "빵 종류 필터", example = "PASTRY")
-            @RequestParam(value = "bread_type", required = false) BreadType breadType,
+            @RequestParam(value = "bread_type", required = false) String breadType,
             @Parameter(description = "빵 이름 검색어", example = "크루아상")
             @RequestParam(value = "search", required = false) String search,
             @Parameter(description = "페이지네이션 커서", example = "6")

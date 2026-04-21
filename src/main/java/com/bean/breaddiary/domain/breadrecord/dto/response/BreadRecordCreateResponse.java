@@ -1,6 +1,4 @@
 package com.bean.breaddiary.domain.breadrecord.dto.response;
-
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,7 +35,7 @@ public class BreadRecordCreateResponse {
     private String name;
 
     @Schema(description = "빵 종류", example = "PASTRY")
-    private BreadType breadType;
+    private String breadType;
 
     @Schema(description = "카탈로그 이미지 URL", example = "https://cdn.bread-diary.app/breads/croissant.webp")
     private String imageUrl;

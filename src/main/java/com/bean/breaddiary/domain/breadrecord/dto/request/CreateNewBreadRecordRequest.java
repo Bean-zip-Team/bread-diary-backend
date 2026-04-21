@@ -1,6 +1,4 @@
 package com.bean.breaddiary.domain.breadrecord.dto.request;
-
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -27,11 +25,9 @@ public class CreateNewBreadRecordRequest {
     @Size(max = 30, message = "빵 이름은 30자 이내로 입력해주세요.")
     private String name;
 
-    @Schema(description = "빵 종류", example = "PASTRY", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {
-            "PASTRY", "BREAD", "DONUT", "CAKE", "BAGEL", "TART", "OTHER"
-    })
-    @NotNull(message = "올바른 빵 종류를 선택해주세요.")
-    private BreadType breadType;
+    @Schema(description = "빵 종류 코드", example = "PASTRY", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "올바른 빵 종류를 선택해주세요.")
+    private String breadType;
 
     @Schema(description = "빵 사진 파일 (JPEG/PNG/WebP)", type = "string", format = "binary", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "사진은 필수입니다.")

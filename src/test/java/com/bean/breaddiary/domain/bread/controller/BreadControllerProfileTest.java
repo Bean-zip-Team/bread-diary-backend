@@ -3,7 +3,6 @@ package com.bean.breaddiary.domain.bread.controller;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileRecordResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadComplexService;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +49,7 @@ class BreadControllerProfileTest {
                 breadId,
                 6,
                 "크루아상",
-                BreadType.PASTRY,
+                "PASTRY",
                 "페이스트리",
                 "https://cdn.bread-diary.app/breads/croissant.webp",
                 new BreadProfileStatsResponse(

@@ -6,7 +6,7 @@ import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.bean.breaddiary.domain.auth.service.UserSessionService;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.bread.entity.BreadType;
+import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -154,7 +155,7 @@ class UserWithdrawalServiceTest {
                 .id(UUID.randomUUID())
                 .stickerNumber(stickerNumber)
                 .name(name)
-                .breadType(BreadType.PASTRY)
+                .breadType(PASTRY)
                 .imageUrl("https://cdn.bread-diary.app/catalog/default_user_bread.webp")
                 .createdBy(createdBy)
                 .build();
