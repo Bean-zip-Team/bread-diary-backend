@@ -51,6 +51,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error.message").value("이름은 필수입니다."));
     }
 
+    @Test
+    void unsupportedMediaTypeReturnsCommonErrorResponse() throws Exception {
+        mockMvc.perform(post("/json-only")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("name=bread"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+    }
+
     @RestController
     private static class TestController {
 
@@ -61,6 +71,10 @@ class GlobalExceptionHandlerTest {
 
         @PostMapping("/validate")
         void validate(@Valid @RequestBody TestRequest request) {
+        }
+
+        @PostMapping(value = "/json-only", consumes = MediaType.APPLICATION_JSON_VALUE)
+        void jsonOnly(@RequestBody TestRequest request) {
         }
     }
 
