@@ -1,5 +1,8 @@
 package com.bean.breaddiary.global.s3;
 
+import com.bean.breaddiary.global.image.ProcessedBreadPhoto;
+import com.bean.breaddiary.global.image.ResizedImage;
+import com.bean.breaddiary.global.image.ImageResizeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -12,7 +15,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,6 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class S3UploadService {
 
+    private static final long MAX_PHOTO_SIZE_BYTES = 10L * 1024L * 1024L;
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
             "image/png",
@@ -27,6 +30,7 @@ public class S3UploadService {
     );
 
     private final S3Client s3Client;
+    private final ImageResizeService imageResizeService;
 
     @Value("${app.aws.s3.region}")
     private String region;
@@ -37,33 +41,26 @@ public class S3UploadService {
     @Value("${app.aws.s3.public-base-url:}")
     private String publicBaseUrl;
 
-    @Value("${app.aws.s3.bread-photo-prefix:bread}")
+    @Value("${app.aws.s3.bread-photo-prefix:bread-photos}")
     private String breadPhotoPrefix;
 
     public String uploadBreadPhoto(UUID userId, MultipartFile photo) {
         validateS3Properties();
         validatePhoto(photo);
 
-        String key = createBreadPhotoKey(userId, photo);
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .contentType(photo.getContentType())
-                .contentLength(photo.getSize())
-                .build();
+        ProcessedBreadPhoto processedBreadPhoto = imageResizeService.processBreadPhoto(photo);
+        String imageId = UUID.randomUUID().toString();
+        String originalKey = createBreadPhotoKey(userId, imageId, processedBreadPhoto.getOriginal());
+        String thumbnailKey = createThumbnailKey(originalKey);
 
         try {
-            s3Client.putObject(
-                    putObjectRequest,
-                    RequestBody.fromInputStream(photo.getInputStream(), photo.getSize())
-            );
-        } catch (IOException exception) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 파일을 읽을 수 없습니다.", exception);
+            putObject(originalKey, processedBreadPhoto.getOriginal());
+            putObject(thumbnailKey, processedBreadPhoto.getThumbnail());
         } catch (S3Exception exception) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드에 실패했습니다.", exception);
         }
 
-        return createPublicUrl(key);
+        return createPublicUrl(originalKey);
     }
 
     private void validateS3Properties() {
@@ -80,27 +77,47 @@ public class S3UploadService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사진은 필수입니다.");
         }
 
+        if (photo.getSize() > MAX_PHOTO_SIZE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "사진 크기는 10MB 이하여야 합니다.");
+        }
+
         if (!ALLOWED_CONTENT_TYPES.contains(photo.getContentType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사진은 JPEG, PNG, WebP 형식만 업로드할 수 있습니다.");
         }
     }
 
-    private String createBreadPhotoKey(UUID userId, MultipartFile photo) {
-        return "%s/%s/%s%s".formatted(
-                normalizePrefix(breadPhotoPrefix),
-                userId,
-                UUID.randomUUID(),
-                resolveExtension(photo.getContentType())
+    private void putObject(String key, ResizedImage image) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType(image.getContentType())
+                .contentLength((long) image.getBytes().length)
+                .build();
+
+        s3Client.putObject(
+                putObjectRequest,
+                RequestBody.fromBytes(image.getBytes())
         );
     }
 
-    private String resolveExtension(String contentType) {
-        return switch (contentType) {
-            case "image/jpeg" -> ".jpg";
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다.");
-        };
+    private String createBreadPhotoKey(UUID userId, String imageId, ResizedImage image) {
+        return "%s/%s/%s%s".formatted(
+                normalizePrefix(breadPhotoPrefix),
+                userId,
+                imageId,
+                image.getExtension()
+        );
+    }
+
+    private String createThumbnailKey(String originalKey) {
+        int extensionIndex = originalKey.lastIndexOf('.');
+        if (extensionIndex < 0) {
+            return originalKey + "_thumb";
+        }
+
+        return originalKey.substring(0, extensionIndex)
+                + "_thumb"
+                + originalKey.substring(extensionIndex);
     }
 
     private String createPublicUrl(String key) {
@@ -117,7 +134,7 @@ public class S3UploadService {
 
     private String normalizePrefix(String prefix) {
         if (!StringUtils.hasText(prefix)) {
-            return "bread";
+            return "bread-photos";
         }
         return removeTrailingSlash(prefix);
     }

@@ -23,6 +23,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
+	implementation 'org.imgscalr:imgscalr-lib:4.2'
+	implementation 'org.sejda.imageio:webp-imageio:0.1.6'
 	implementation platform('software.amazon.awssdk:bom:2.27.21')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:url-connection-client'
