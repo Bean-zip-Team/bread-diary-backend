@@ -65,7 +65,7 @@ public interface BreadMapper {
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
-    @Mapping(target = "imageUrl", source = "bread.imageUrl")
+    @Mapping(target = "imageUrl", expression = "java(resolveCatalogImageUrl(bread.getImageUrl(), stats))")
     @Mapping(target = "isCollected", expression = "java(isCollected(stats))")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(stats))")
     @Mapping(target = "avgRating", expression = "java(resolveAvgRating(stats))")
@@ -97,6 +97,29 @@ public interface BreadMapper {
 
     default Boolean isCollected(BreadRecordCatalogStats stats) {
         return stats != null && resolveEatCount(stats) > 0;
+    }
+
+    default String resolveCatalogImageUrl(String imageUrl, BreadRecordCatalogStats stats) {
+        if (isCollected(stats)) {
+            return imageUrl;
+        }
+
+        return toPlaceholderUrl(imageUrl);
+    }
+
+    private String toPlaceholderUrl(String imageUrl) {
+        if (imageUrl == null) {
+            return null;
+        }
+
+        int extensionIndex = imageUrl.lastIndexOf('.');
+        if (extensionIndex < 0) {
+            return imageUrl + "_placeholder";
+        }
+
+        return imageUrl.substring(0, extensionIndex)
+                + "_placeholder"
+                + imageUrl.substring(extensionIndex);
     }
 
     default Long resolveEatCount(BreadRecordCatalogStats stats) {
