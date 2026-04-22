@@ -1,6 +1,7 @@
 package com.bean.breaddiary.global.common;
 
 import com.bean.breaddiary.global.logging.RequestLogContext;
+import com.bean.breaddiary.global.ratelimit.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class GlobalExceptionHandler {
 
     private static final String DEFAULT_VALIDATION_MESSAGE = "요청 값이 올바르지 않습니다.";
+    private static final String RATE_LIMITED_MESSAGE = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiErrorResponse> handleResponseStatusException(
@@ -80,6 +82,27 @@ public class GlobalExceptionHandler {
                 request,
                 exception
         );
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleRateLimitExceededException(
+            RateLimitExceededException exception,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Request failed: code={} method={} path={} requestId={} retryAfterSeconds={} exceptionType={}",
+                "RATE_LIMITED",
+                request.getMethod(),
+                request.getRequestURI(),
+                RequestLogContext.currentRequestIdOrDefault(),
+                exception.getRetryAfterSeconds(),
+                exception.getClass().getSimpleName()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(exception.getRetryAfterSeconds()))
+                .body(ApiErrorResponse.failure("RATE_LIMITED", RATE_LIMITED_MESSAGE));
     }
 
     @ExceptionHandler({

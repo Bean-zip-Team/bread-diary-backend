@@ -2,6 +2,7 @@ package com.bean.breaddiary.global.config;
 
 import com.bean.breaddiary.global.interceptor.AuthInterceptor;
 import com.bean.breaddiary.global.logging.RequestLogContext;
+import com.bean.breaddiary.global.ratelimit.RateLimitInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
+    private final RateLimitInterceptor rateLimitInterceptor;
     private final AuthInterceptor authInterceptor;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:8081,https://bread-diary.app}")
@@ -21,8 +23,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/**")
+                .order(0);
+
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/**");
+                .addPathPatterns("/**")
+                .order(1);
     }
 
     @Override
