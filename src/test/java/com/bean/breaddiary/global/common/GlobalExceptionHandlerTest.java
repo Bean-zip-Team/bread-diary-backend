@@ -61,6 +61,15 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
+    @Test
+    void validationFailureExceptionReturnsValidationFailedCode() throws Exception {
+        mockMvc.perform(get("/validation-failure"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.error.message").value("이벤트 속성에 허용되지 않는 항목이 포함되어 있습니다."));
+    }
+
     @RestController
     private static class TestController {
 
@@ -75,6 +84,11 @@ class GlobalExceptionHandlerTest {
 
         @PostMapping(value = "/json-only", consumes = MediaType.APPLICATION_JSON_VALUE)
         void jsonOnly(@RequestBody TestRequest request) {
+        }
+
+        @GetMapping("/validation-failure")
+        void validationFailure() {
+            throw new ValidationFailureException("이벤트 속성에 허용되지 않는 항목이 포함되어 있습니다.");
         }
     }
 

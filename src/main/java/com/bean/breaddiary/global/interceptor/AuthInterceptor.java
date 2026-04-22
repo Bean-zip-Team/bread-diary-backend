@@ -112,7 +112,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        return false;
+        return HTTP_POST.equalsIgnoreCase(method) && "/events".equals(requestUri);
     }
 
     private boolean hasAuthorizationHeader(HttpServletRequest request) {
