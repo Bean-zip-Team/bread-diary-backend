@@ -130,6 +130,83 @@ class AuthInterceptorTest {
     }
 
     @Test
+    void preHandleAllowsAnonymousRequestForOptionalEventsEndpoint() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/events");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(authInterceptor.preHandle(request, response, handlerMethod));
+        assertEquals(null, request.getAttribute(AuthRequestAttributes.USER_ID));
+        verifyNoInteractions(userSessionService);
+    }
+
+    @Test
+    void preHandleAuthenticatesBearerTokenForOptionalEventsEndpoint() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440040");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440041");
+        LocalDateTime now = LocalDateTime.now();
+        String accessToken = jwtTokenProvider.createAccessToken(
+                userId,
+                sessionId,
+                now,
+                now.plusDays(1)
+        );
+        UserSession userSession = UserSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .refreshTokenHash("hashed-refresh-token")
+                .currentJti("current-jti")
+                .refreshExpiresAt(now.plusDays(30))
+                .build();
+
+        when(userSessionService.findActiveSession(eq(sessionId), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(userSession));
+
+        MockHttpServletRequest request = authorizedRequest("POST", "/events", accessToken);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(authInterceptor.preHandle(request, response, handlerMethod));
+        assertEquals(userId, request.getAttribute(AuthRequestAttributes.USER_ID));
+        assertEquals(sessionId, request.getAttribute(AuthRequestAttributes.SESSION_ID));
+    }
+
+    @Test
+    void preHandleRejectsInvalidBearerTokenForOptionalEventsEndpoint() {
+        MockHttpServletRequest request = authorizedRequest("POST", "/events", "invalid-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authInterceptor.preHandle(request, response, handlerMethod)
+        );
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verifyNoInteractions(userSessionService);
+    }
+
+    @Test
+    void preHandleRejectsRefreshTokenForOptionalEventsEndpoint() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440042");
+        UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440043");
+        String refreshToken = jwtTokenProvider.createRefreshToken(
+                userId,
+                sessionId,
+                "refresh-jti",
+                LocalDateTime.now(),
+                LocalDateTime.now().plusDays(30)
+        );
+
+        MockHttpServletRequest request = authorizedRequest("POST", "/events", refreshToken);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authInterceptor.preHandle(request, response, handlerMethod)
+        );
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
     void preHandleRejectsMissingBearerTokenForProtectedEndpoint() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/breads/550e8400-e29b-41d4-a716-446655440000");
         MockHttpServletResponse response = new MockHttpServletResponse();

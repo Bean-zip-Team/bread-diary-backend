@@ -70,6 +70,18 @@ public class GlobalExceptionHandler {
         return validationFailure(message, request, exception);
     }
 
+    @ExceptionHandler(ValidationFailureException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidationFailureException(
+            ValidationFailureException exception,
+            HttpServletRequest request
+    ) {
+        return validationFailure(
+                resolveMessage(exception.getMessage(), DEFAULT_VALIDATION_MESSAGE),
+                request,
+                exception
+        );
+    }
+
     @ExceptionHandler({
             HttpMessageNotReadableException.class,
             MissingRequestHeaderException.class
