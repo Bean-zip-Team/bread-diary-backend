@@ -1,5 +1,7 @@
 package com.bean.breaddiary.global.common;
 
+import com.bean.breaddiary.global.ratelimit.RateLimitExceededException;
+import com.bean.breaddiary.global.ratelimit.RateLimitPolicy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,6 +73,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error.message").value("이벤트 속성에 허용되지 않는 항목이 포함되어 있습니다."));
     }
 
+    @Test
+    void rateLimitExceededExceptionReturnsRateLimitedCodeAndRetryAfterHeader() throws Exception {
+        mockMvc.perform(get("/rate-limited"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "30"))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMITED"))
+                .andExpect(jsonPath("$.error.message").value("요청이 너무 많습니다. 잠시 후 다시 시도해주세요."));
+    }
+
     @RestController
     private static class TestController {
 
@@ -89,6 +102,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/validation-failure")
         void validationFailure() {
             throw new ValidationFailureException("이벤트 속성에 허용되지 않는 항목이 포함되어 있습니다.");
+        }
+
+        @GetMapping("/rate-limited")
+        void rateLimited() {
+            throw new RateLimitExceededException(RateLimitPolicy.AUTH_TOSS, 30);
         }
     }
 
