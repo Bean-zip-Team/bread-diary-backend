@@ -86,7 +86,7 @@ class AuthServiceTest {
                 ));
         when(tossAuthClient.getUserInfo("toss-access-token"))
                 .thenReturn(new TossAuthClient.TossLoginMeSuccess(
-                        TextNode.valueOf("toss-user-key-12345678"),
+                        12345678L,
                         "encrypted-name",
                         "encrypted-email"
                 ));
@@ -94,7 +94,7 @@ class AuthServiceTest {
                 .thenReturn("Bread Lover");
         when(tossUserInfoDecryptor.decryptNullable("encrypted-email"))
                 .thenReturn("bread@toss.im");
-        when(userRepository.findByTossUserKey("toss-user-key-12345678"))
+        when(userRepository.findByTossUserKey("12345678"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("bread@toss.im"))
                 .thenReturn(Optional.empty());
@@ -139,7 +139,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-        assertEquals("toss-user-key-12345678", userCaptor.getValue().getTossUserKey());
+        assertEquals("12345678", userCaptor.getValue().getTossUserKey());
         assertEquals("Bread Lover", userCaptor.getValue().getNickname());
         assertEquals("bread@toss.im", userCaptor.getValue().getEmail());
 
@@ -221,14 +221,14 @@ class AuthServiceTest {
         LocalDateTime refreshTokenExpiresAt = LocalDateTime.of(2026, 5, 19, 10, 0);
         User deletedUser = User.builder()
                 .id(userId)
-                .tossUserKey("toss-user-key-87654321")
+                .tossUserKey("87654321")
                 .nickname("old-name")
                 .email("old@toss.im")
                 .deletedAt(LocalDateTime.of(2026, 4, 1, 10, 0))
                 .build();
 
         prepareSuccessfulLogin(
-                "toss-user-key-87654321",
+                "87654321",
                 "Fresh Name",
                 "fresh@toss.im",
                 userId,
@@ -236,7 +236,7 @@ class AuthServiceTest {
                 accessTokenExpiresAt,
                 refreshTokenExpiresAt
         );
-        when(userRepository.findByTossUserKey("toss-user-key-87654321"))
+        when(userRepository.findByTossUserKey("87654321"))
                 .thenReturn(Optional.of(deletedUser));
 
         AuthTokenResponse actual = authService.loginWithToss(
@@ -263,7 +263,7 @@ class AuthServiceTest {
                 .build();
 
         prepareSuccessfulLogin(
-                "toss-user-key-99999999",
+                "99999999",
                 "legacy-user",
                 "legacy@toss.im",
                 userId,
@@ -271,7 +271,7 @@ class AuthServiceTest {
                 accessTokenExpiresAt,
                 refreshTokenExpiresAt
         );
-        when(userRepository.findByTossUserKey("toss-user-key-99999999"))
+        when(userRepository.findByTossUserKey("99999999"))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("legacy@toss.im"))
                 .thenReturn(Optional.of(existingUser));
@@ -281,7 +281,7 @@ class AuthServiceTest {
         );
 
         assertFalse(actual.isNewUser());
-        assertEquals("toss-user-key-99999999", existingUser.getTossUserKey());
+        assertEquals("99999999", existingUser.getTossUserKey());
         assertEquals("legacy@toss.im", existingUser.getEmail());
         verify(userRepository, never()).save(any(User.class));
     }
@@ -303,13 +303,13 @@ class AuthServiceTest {
                 ));
         when(tossAuthClient.getUserInfo("toss-access-token"))
                 .thenReturn(new TossAuthClient.TossLoginMeSuccess(
-                        TextNode.valueOf("toss-user-key-fallback"),
+                        98765432L,
                         "encrypted-name",
                         null
                 ));
         when(tossUserInfoDecryptor.decryptNullable("encrypted-name"))
                 .thenReturn(null);
-        when(userRepository.findByTossUserKey("toss-user-key-fallback"))
+        when(userRepository.findByTossUserKey("98765432"))
                 .thenReturn(Optional.empty());
         when(userRepository.save(any(User.class)))
                 .thenAnswer(invocation -> {
@@ -475,7 +475,7 @@ class AuthServiceTest {
                 ));
         when(tossAuthClient.getUserInfo("toss-access-token"))
                 .thenReturn(new TossAuthClient.TossLoginMeSuccess(
-                        TextNode.valueOf(tossUserKey),
+                        Long.valueOf(tossUserKey),
                         "encrypted-name",
                         "encrypted-email"
                 ));
