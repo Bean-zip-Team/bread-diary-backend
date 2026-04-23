@@ -269,7 +269,7 @@ public class AuthService {
 
     private ResolvedTossProfile resolveTossProfile(TossAuthClient.TossLoginMeSuccess tossUserInfo) {
         String tossUserKey = requireText(
-                tossUserInfo.userKey() == null ? null : tossUserInfo.userKey().asText(null),
+                tossUserInfo.userKey() == null ? null : String.valueOf(tossUserInfo.userKey()),
                 "토스 사용자 키가 없습니다."
         );
         String decryptedName = tossUserInfoDecryptor.decryptNullable(tossUserInfo.name());
