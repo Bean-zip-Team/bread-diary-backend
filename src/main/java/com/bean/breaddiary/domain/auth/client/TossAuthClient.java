@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,14 +34,11 @@ public class TossAuthClient {
     private final String unlinkAccessToken;
 
     public TossAuthClient(
-            RestClient.Builder restClientBuilder,
+            @Qualifier("tossRestClient") RestClient restClient,
             ObjectMapper objectMapper,
-            @Value("${app.auth.toss.base-url:https://apps-in-toss-api.toss.im}") String baseUrl,
             @Value("${TOSS_UNLINK_ACCESS_TOKEN:${app.auth.toss.unlink-access-token:}}") String unlinkAccessToken
     ) {
-        this.restClient = restClientBuilder
-                .baseUrl(baseUrl)
-                .build();
+        this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.unlinkAccessToken = unlinkAccessToken;
     }
