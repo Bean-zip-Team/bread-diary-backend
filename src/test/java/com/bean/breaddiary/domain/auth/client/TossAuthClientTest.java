@@ -41,9 +41,8 @@ class TossAuthClientTest {
         RestClient.Builder restClientBuilder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
         tossAuthClient = new TossAuthClient(
-                restClientBuilder,
+                restClientBuilder.baseUrl(BASE_URL).build(),
                 new ObjectMapper(),
-                BASE_URL,
                 "unlink-access-token"
         );
 
