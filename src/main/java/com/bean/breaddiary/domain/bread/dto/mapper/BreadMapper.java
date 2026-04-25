@@ -42,7 +42,7 @@ public interface BreadMapper {
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
-    @Mapping(target = "imageUrl", source = "bread.imageUrl")
+    @Mapping(target = "imageUrl", expression = "java(resolveAutocompleteImageUrl(bread.getImageUrl(), eatCount))")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(eatCount))")
     BreadAutocompleteItemResponse mapToAutocompleteItem(Bread bread, Long eatCount);
 
@@ -59,6 +59,14 @@ public interface BreadMapper {
 
     default Long resolveEatCount(Long eatCount) {
         return eatCount == null ? 0L : eatCount;
+    }
+
+    default String resolveAutocompleteImageUrl(String imageUrl, Long eatCount) {
+        if (resolveEatCount(eatCount) > 0) {
+            return imageUrl;
+        }
+
+        return toPlaceholderUrl(imageUrl);
     }
 
     @Mapping(target = "breadId", source = "bread.id")
