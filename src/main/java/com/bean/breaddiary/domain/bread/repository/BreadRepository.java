@@ -21,6 +21,8 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
 
     List<Bread> findAllByCreatedBy(UUID createdBy);
 
+    List<Bread> findAllByCreatedByIsNullOrderByStickerNumberAsc();
+
     boolean existsByName(String name);
 
     List<Bread> findByNameContainingIgnoreCaseOrderByStickerNumberAsc(String name, Pageable pageable);
