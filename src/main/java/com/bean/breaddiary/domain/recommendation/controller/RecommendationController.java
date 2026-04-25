@@ -37,10 +37,6 @@ public class RecommendationController {
                     content = @Content(schema = @Schema(implementation = BreadTodayResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "Authorization 헤더가 잘못된 경우 인증에 실패합니다. Authorization 헤더가 없으면 비로그인 요청으로 처리됩니다."
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "500",
                     description = "오늘의 추천 빵 목록을 생성하거나 조회하는 중 서버 오류가 발생했습니다."
             )
@@ -49,9 +45,6 @@ public class RecommendationController {
     public ResponseEntity<ApiResponse<BreadTodayResponse>> getTodayRecommendations(
             @Parameter(hidden = true) HttpServletRequest request
     ) {
-        UUID userId = AuthRequestAttributes.getOptionalUserId(request);
-        BreadTodayResponse response = recommendationComplexService.getTodayRecommendations(userId);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success(recommendationComplexService.getTodayRecommendations(AuthRequestAttributes.getOptionalUserId(request))));
     }
 }
