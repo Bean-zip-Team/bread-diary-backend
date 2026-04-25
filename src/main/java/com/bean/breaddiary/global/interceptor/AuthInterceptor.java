@@ -107,6 +107,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         if (HTTP_GET.equalsIgnoreCase(method)
                 && ("/breads".equals(requestUri)
+                || "/breads/today".equals(requestUri)
                 || "/breads/autocomplete".equals(requestUri)
                 || PATH_MATCHER.match("/breads/catalog/*", requestUri))) {
             return true;

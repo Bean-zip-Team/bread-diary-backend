@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> {
@@ -42,6 +43,31 @@ public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> 
     List<BreadRecordCountProjection> countActiveRecordsByBreadIds(
             @Param("userId") UUID userId,
             @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.deletedAt is null
+              and br.bread.id in :breadIds
+            group by br.bread.id
+            """)
+    List<BreadRecordCountProjection> countTotalActiveRecordsByBreadIds(
+            @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.deletedAt is null
+              and br.bread.createdBy is null
+              and br.eatenDate between :startDate and :endDate
+            group by br.bread.id, br.bread.stickerNumber
+            order by count(br) desc, br.bread.stickerNumber asc
+            """)
+    List<BreadRecordCountProjection> countRecentActiveSystemRecordsByBread(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
     );
 
     @Query("""

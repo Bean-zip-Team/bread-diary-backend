@@ -67,6 +67,27 @@ public class BreadRecordService {
                 ));
     }
 
+    public Map<UUID, Long> countTotalActiveRecordsByBreadIds(List<UUID> breadIds) {
+        if (breadIds == null || breadIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return breadRecordRepository.countTotalActiveRecordsByBreadIds(breadIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        BreadRecordCountProjection::getBreadId,
+                        BreadRecordCountProjection::getEatCount
+                ));
+    }
+
+    public List<BreadRecordCountProjection> findRecentActiveSystemBreadCounts(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
+            return List.of();
+        }
+
+        return breadRecordRepository.countRecentActiveSystemRecordsByBread(startDate, endDate);
+    }
+
     public Map<UUID, BreadRecordCatalogStats> findCatalogStatsByBreadIds(UUID userId, List<UUID> breadIds) {
         if (userId == null || breadIds == null || breadIds.isEmpty()) {
             return Collections.emptyMap();

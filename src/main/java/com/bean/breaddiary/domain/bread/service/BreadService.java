@@ -67,6 +67,10 @@ public class BreadService {
         return breadMapper.mapToAutocompleteResponse(breads, eatCounts);
     }
 
+    public List<Bread> findAllSystemCatalogBreads() {
+        return breadRepository.findAllByCreatedByIsNullOrderByStickerNumberAsc();
+    }
+
     public List<Bread> findCatalogCandidates(String search, BreadType breadType) {
         return breadRepository.findCatalogCandidates(
                 normalizeSearch(search),

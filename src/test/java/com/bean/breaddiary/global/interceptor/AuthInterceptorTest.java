@@ -86,6 +86,16 @@ class AuthInterceptorTest {
     }
 
     @Test
+    void preHandleAllowsAnonymousRequestForOptionalBreadTodayEndpoint() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/breads/today");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(authInterceptor.preHandle(request, response, handlerMethod));
+        assertEquals(null, request.getAttribute(AuthRequestAttributes.USER_ID));
+        verifyNoInteractions(userSessionService);
+    }
+
+    @Test
     void preHandleAuthenticatesBearerTokenForOptionalBreadCatalogEndpoint() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440030");
         UUID sessionId = UUID.fromString("550e8400-e29b-41d4-a716-446655440031");
