@@ -95,6 +95,38 @@ class BreadControllerProfileTest {
         verify(breadComplexService).getBreadProfile(breadId, userId);
     }
 
+    @Test
+    void getBreadProfileReturnsPlaceholderImageForUnrecordedBread() throws Exception {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
+        BreadProfileResponse response = new BreadProfileResponse(
+                breadId,
+                6,
+                "크루아상",
+                "PASTRY",
+                "페이스트리",
+                "https://cdn.bread-diary.app/breads/croissant_placeholder.webp",
+                new BreadProfileStatsResponse(
+                        0L,
+                        null,
+                        null
+                ),
+                List.of()
+        );
+
+        when(breadComplexService.getBreadProfile(breadId, userId)).thenReturn(response);
+
+        mockMvc.perform(get("/breads/catalog/{breadId}", breadId)
+                        .requestAttr(AuthRequestAttributes.USER_ID, userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.image_url").value("https://cdn.bread-diary.app/breads/croissant_placeholder.webp"))
+                .andExpect(jsonPath("$.data.stats.eat_count").value(0))
+                .andExpect(jsonPath("$.data.records").isArray());
+
+        verify(breadComplexService).getBreadProfile(breadId, userId);
+    }
+
     private JsonMapper snakeCaseObjectMapper() {
         return JsonMapper.builder()
                 .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
