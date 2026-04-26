@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -141,7 +143,7 @@ public class UserWithdrawalService {
 
     private void validateWebhookSecret(String requestWebhookSecret) {
         String configuredSecret = normalizeText(tossWebhookSecret);
-        String incomingSecret = normalizeText(requestWebhookSecret);
+        String incomingSecret = decodeBasicAuthorization(requestWebhookSecret);
 
         if (!StringUtils.hasText(configuredSecret)) {
             throw new ResponseStatusException(
@@ -154,6 +156,37 @@ public class UserWithdrawalService {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "토스 웹훅 인증에 실패했습니다."
+            );
+        }
+    }
+
+    private String decodeBasicAuthorization(String authorizationHeader) {
+        String normalizedAuthorization = normalizeText(authorizationHeader);
+        if (!StringUtils.hasText(normalizedAuthorization)
+                || !normalizedAuthorization.regionMatches(true, 0, "Basic ", 0, 6)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "토스 웹훅 인증에 실패했습니다."
+            );
+        }
+
+        String encodedCredentials = normalizedAuthorization.substring(6).trim();
+        if (!StringUtils.hasText(encodedCredentials)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "토스 웹훅 인증에 실패했습니다."
+            );
+        }
+
+        try {
+            byte[] decodedBytes = Base64.getDecoder().decode(encodedCredentials);
+            String decodedCredentials = new String(decodedBytes, StandardCharsets.UTF_8);
+            return normalizeText(decodedCredentials);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "토스 웹훅 인증에 실패했습니다.",
+                    exception
             );
         }
     }

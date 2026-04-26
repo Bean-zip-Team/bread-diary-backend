@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private static final String TOSS_WEBHOOK_SECRET_HEADER = "x-toss-webhook-secret";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
 
     private final AuthService authService;
     private final UserWithdrawalService userWithdrawalService;
@@ -121,7 +121,7 @@ public class AuthController {
 
     @Operation(
             summary = "토스 연결 해제 웹훅",
-            description = "토스 웹훅 secret을 검증하고 eventType에 따라 세션 정리 또는 사용자 완전 삭제를 수행합니다."
+            description = "Authorization Basic 헤더를 검증하고 eventType에 따라 세션 정리 또는 사용자 완전 삭제를 수행합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -135,11 +135,11 @@ public class AuthController {
     })
     @PostMapping("/webhook/toss-unlink")
     public ResponseEntity<ApiResponse<TossWebhookResponse>> handleTossWebhook(
-            @RequestHeader(TOSS_WEBHOOK_SECRET_HEADER) String webhookSecret,
+            @RequestHeader(AUTHORIZATION_HEADER) String authorization,
             @Valid @RequestBody TossWebhookRequest request
     ) {
         return ResponseEntity.ok(
-                ApiResponse.success(userWithdrawalService.handleTossWebhook(webhookSecret, request))
+                ApiResponse.success(userWithdrawalService.handleTossWebhook(authorization, request))
         );
     }
 }
