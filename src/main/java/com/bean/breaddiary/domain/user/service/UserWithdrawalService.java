@@ -3,7 +3,6 @@ package com.bean.breaddiary.domain.user.service;
 import com.bean.breaddiary.domain.auth.client.TossAuthClient;
 import com.bean.breaddiary.domain.auth.dto.request.TossWebhookRequest;
 import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
-import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.bean.breaddiary.domain.auth.service.UserSessionService;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
@@ -33,6 +32,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserWithdrawalService {
+
+    private static final String WEBHOOK_REFERRER_UNLINK = "UNLINK";
+    private static final String WEBHOOK_REFERRER_WITHDRAWAL_TERMS = "WITHDRAWAL_TERMS";
+    private static final String WEBHOOK_REFERRER_WITHDRAWAL_TOSS = "WITHDRAWAL_TOSS";
 
     private final UserService userService;
     private final UserRepository userRepository;
@@ -85,33 +88,39 @@ public class UserWithdrawalService {
     ) {
         long startNanos = System.nanoTime();
         UUID userId = null;
-        TossWebhookEventType eventType = request == null ? null : request.getEventType();
+        String referrer = request == null ? null : normalizeText(request.getReferrer());
 
         try {
             validateWebhookSecret(requestWebhookSecret);
 
             Optional<User> user = userRepository.findByTossUserKey(normalizeText(request.getUserKey()));
             if (user.isEmpty()) {
-                logWebhookSuccess(resolveWebhookAction(eventType), null, eventType, false, startNanos);
-                return new TossWebhookResponse(true, request.getEventType());
+                logWebhookSuccess(resolveWebhookAction(referrer), null, referrer, false, startNanos);
+                return new TossWebhookResponse(true, referrer);
             }
 
             userId = user.get().getId();
 
-            if (request.getEventType() == TossWebhookEventType.UNLINK) {
-                clearSessionsOnly(userId);
-                logWebhookSuccess("tossUnlinkWebhook", userId, eventType, true, startNanos);
-                return new TossWebhookResponse(true, request.getEventType());
+            if (WEBHOOK_REFERRER_UNLINK.equalsIgnoreCase(referrer)) {
+                user.get().clearTossTokens();
+                logWebhookSuccess("tossUnlinkWebhook", userId, referrer, true, startNanos);
+                return new TossWebhookResponse(true, referrer);
             }
 
-            hardDeleteUserData(user.get());
-            logWebhookSuccess("tossWithdrawalWebhook", userId, eventType, true, startNanos);
-            return new TossWebhookResponse(true, request.getEventType());
+            if (WEBHOOK_REFERRER_WITHDRAWAL_TERMS.equalsIgnoreCase(referrer)
+                    || WEBHOOK_REFERRER_WITHDRAWAL_TOSS.equalsIgnoreCase(referrer)) {
+                hardDeleteUserData(user.get());
+                logWebhookSuccess("tossWithdrawalWebhook", userId, referrer, true, startNanos);
+                return new TossWebhookResponse(true, referrer);
+            }
+
+            logWebhookSuccess("tossUnknownWebhook", userId, referrer, true, startNanos);
+            return new TossWebhookResponse(true, referrer);
         } catch (ResponseStatusException exception) {
-            logUserFailure(resolveWebhookAction(eventType), userId, eventType, exception, startNanos);
+            logUserFailure(resolveWebhookAction(referrer), userId, referrer, exception, startNanos);
             throw exception;
         } catch (RuntimeException exception) {
-            logUnexpectedUserFailure(resolveWebhookAction(eventType), userId, eventType, exception, startNanos);
+            logUnexpectedUserFailure(resolveWebhookAction(referrer), userId, referrer, exception, startNanos);
             throw exception;
         }
     }
@@ -134,11 +143,6 @@ public class UserWithdrawalService {
 
         userSessionService.deleteAllSessions(userId);
         userRepository.delete(user);
-    }
-
-    @Transactional
-    public void clearSessionsOnly(UUID userId) {
-        userSessionService.deleteAllSessions(userId);
     }
 
     private void validateWebhookSecret(String requestWebhookSecret) {
@@ -255,17 +259,17 @@ public class UserWithdrawalService {
     private void logWebhookSuccess(
             String action,
             UUID userId,
-            TossWebhookEventType eventType,
+            String referrer,
             boolean userFound,
             long startNanos
     ) {
         log.info(
-                "USER action={} result=success requestId={} userId={} status={} eventType={} userFound={} durationMs={}",
+                "USER action={} result=success requestId={} userId={} status={} referrer={} userFound={} durationMs={}",
                 action,
                 RequestLogContext.currentRequestIdOrDefault(),
                 valueOrDefault(userId),
                 HttpStatus.OK.value(),
-                valueOrDefault(eventType),
+                valueOrDefault(referrer),
                 userFound,
                 durationMs(startNanos)
         );
@@ -274,18 +278,18 @@ public class UserWithdrawalService {
     private void logUserFailure(
             String action,
             UUID userId,
-            TossWebhookEventType eventType,
+            String referrer,
             ResponseStatusException exception,
             long startNanos
     ) {
         if (exception.getStatusCode().is5xxServerError()) {
             log.error(
-                    "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                    "USER action={} result=fail requestId={} userId={} status={} referrer={} durationMs={}",
                     action,
                     RequestLogContext.currentRequestIdOrDefault(),
                     valueOrDefault(userId),
                     exception.getStatusCode().value(),
-                    valueOrDefault(eventType),
+                    valueOrDefault(referrer),
                     durationMs(startNanos),
                     exception
             );
@@ -293,12 +297,12 @@ public class UserWithdrawalService {
         }
 
         log.warn(
-                "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                "USER action={} result=fail requestId={} userId={} status={} referrer={} durationMs={}",
                 action,
                 RequestLogContext.currentRequestIdOrDefault(),
                 valueOrDefault(userId),
                 exception.getStatusCode().value(),
-                valueOrDefault(eventType),
+                valueOrDefault(referrer),
                 durationMs(startNanos)
         );
     }
@@ -306,25 +310,29 @@ public class UserWithdrawalService {
     private void logUnexpectedUserFailure(
             String action,
             UUID userId,
-            TossWebhookEventType eventType,
+            String referrer,
             RuntimeException exception,
             long startNanos
     ) {
         log.error(
-                "USER action={} result=fail requestId={} userId={} status={} eventType={} durationMs={}",
+                "USER action={} result=fail requestId={} userId={} status={} referrer={} durationMs={}",
                 action,
                 RequestLogContext.currentRequestIdOrDefault(),
                 valueOrDefault(userId),
                 "unexpected",
-                valueOrDefault(eventType),
+                valueOrDefault(referrer),
                 durationMs(startNanos),
                 exception
         );
     }
 
-    private String resolveWebhookAction(TossWebhookEventType eventType) {
-        if (eventType == TossWebhookEventType.UNLINK) {
+    private String resolveWebhookAction(String referrer) {
+        if (WEBHOOK_REFERRER_UNLINK.equalsIgnoreCase(normalizeText(referrer))) {
             return "tossUnlinkWebhook";
+        }
+        if (WEBHOOK_REFERRER_WITHDRAWAL_TERMS.equalsIgnoreCase(normalizeText(referrer))
+                || WEBHOOK_REFERRER_WITHDRAWAL_TOSS.equalsIgnoreCase(normalizeText(referrer))) {
+            return "tossWithdrawalWebhook";
         }
         return "tossWithdrawalWebhook";
     }

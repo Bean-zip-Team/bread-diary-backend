@@ -1,9 +1,7 @@
 package com.bean.breaddiary.domain.auth.dto.request;
 
-import com.bean.breaddiary.domain.auth.entity.TossWebhookEventType;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +15,7 @@ public class TossWebhookRequest {
     @JsonAlias("userKey")
     private String userKey;
 
-    @NotNull(message = "event_type은 필수입니다.")
+    @NotBlank(message = "referrer는 필수입니다.")
     @JsonAlias("eventType")
-    private TossWebhookEventType eventType;
+    private String referrer;
 }

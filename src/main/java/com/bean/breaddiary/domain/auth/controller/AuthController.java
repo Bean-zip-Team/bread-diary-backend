@@ -121,7 +121,7 @@ public class AuthController {
 
     @Operation(
             summary = "토스 연결 해제 웹훅",
-            description = "Authorization Basic 헤더를 검증하고 eventType에 따라 세션 정리 또는 사용자 완전 삭제를 수행합니다."
+            description = "Authorization Basic 헤더를 검증하고 referrer에 따라 토큰 초기화 또는 사용자 완전 삭제를 수행합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
