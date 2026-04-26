@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -23,23 +22,22 @@ public class TossAuthClient {
 
     private static final String GENERATE_TOKEN_PATH =
             "/api-partner/v1/apps-in-toss/user/oauth2/generate-token";
+    private static final String REFRESH_TOKEN_PATH =
+            "/api-partner/v1/apps-in-toss/user/oauth2/refresh-token";
     private static final String LOGIN_ME_PATH =
             "/api-partner/v1/apps-in-toss/user/oauth2/login-me";
     private static final String REMOVE_BY_USER_KEY_PATH =
-            "/api-partner/v1/apps-in-toss/user/oauth2/remove-by-user-key";
+            "/api-partner/v1/apps-in-toss/user/oauth2/access/remove-by-user-key";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final String unlinkAccessToken;
 
     public TossAuthClient(
             @Qualifier("tossRestClient") RestClient restClient,
-            ObjectMapper objectMapper,
-            @Value("${TOSS_UNLINK_ACCESS_TOKEN:${app.auth.toss.unlink-access-token:}}") String unlinkAccessToken
+            ObjectMapper objectMapper
     ) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
-        this.unlinkAccessToken = unlinkAccessToken;
     }
 
     public TossGenerateTokenSuccess exchangeAuthorizationCode(
@@ -114,16 +112,49 @@ public class TossAuthClient {
         }
     }
 
-    public void unlinkByUserKey(String userKey) {
+    public TossGenerateTokenSuccess refreshAccessToken(String refreshToken) {
         long startNanos = System.nanoTime();
 
         try {
-            requireUnlinkAccessToken();
+            TossGenerateTokenResponse response = restClient.post()
+                    .uri(REFRESH_TOKEN_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new TossRefreshTokenRequest(refreshToken))
+                    .retrieve()
+                    .body(TossGenerateTokenResponse.class);
 
+            if (response == null || response.success() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "토스 토큰 재발급에 실패했습니다.");
+            }
+
+            logTossSuccess("tossRefreshToken", startNanos);
+            return response.success();
+        } catch (RestClientResponseException exception) {
+            logTossFailure(
+                    "tossRefreshToken",
+                    exception.getStatusCode().value(),
+                    extractErrorCode(exception.getResponseBodyAsString()),
+                    startNanos,
+                    exception
+            );
+            throw convertException(exception, "토스 토큰 재발급에 실패했습니다.");
+        } catch (ResponseStatusException exception) {
+            logTossFailure("tossRefreshToken", exception.getStatusCode().value(), null, startNanos, exception);
+            throw exception;
+        } catch (RuntimeException exception) {
+            logUnexpectedTossFailure("tossRefreshToken", startNanos, exception);
+            throw exception;
+        }
+    }
+
+    public void unlinkByUserKey(String tossAccessToken, String userKey) {
+        long startNanos = System.nanoTime();
+
+        try {
             TossUnlinkResponse response = restClient.post()
                     .uri(REMOVE_BY_USER_KEY_PATH)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("Authorization", "Bearer " + unlinkAccessToken)
+                    .header("Authorization", "Bearer " + tossAccessToken)
                     .body(new TossUnlinkRequest(userKey))
                     .retrieve()
                     .body(TossUnlinkResponse.class);
@@ -196,15 +227,6 @@ public class TossAuthClient {
         }
     }
 
-    private void requireUnlinkAccessToken() {
-        if (!StringUtils.hasText(unlinkAccessToken)) {
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "TOSS_UNLINK_ACCESS_TOKEN 설정이 필요합니다."
-            );
-        }
-    }
-
     private void logTossSuccess(String action, long startNanos) {
         log.info(
                 "TOSS action={} result=success requestId={} status={} durationMs={}",
@@ -269,6 +291,11 @@ public class TossAuthClient {
     private record TossGenerateTokenRequest(
             String authorizationCode,
             String referrer
+    ) {
+    }
+
+    private record TossRefreshTokenRequest(
+            String refreshToken
     ) {
     }
 

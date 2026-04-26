@@ -140,6 +140,7 @@ class AuthServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         assertEquals("12345678", userCaptor.getValue().getTossUserKey());
+        assertEquals("toss-refresh-token", userCaptor.getValue().getTossRefreshToken());
         assertEquals("Bread Lover", userCaptor.getValue().getNickname());
         assertEquals("bread@toss.im", userCaptor.getValue().getEmail());
 
@@ -247,6 +248,7 @@ class AuthServiceTest {
         assertFalse(deletedUser.isDeleted());
         assertEquals("Fresh Name", deletedUser.getNickname());
         assertEquals("fresh@toss.im", deletedUser.getEmail());
+        assertEquals("toss-refresh-token", deletedUser.getTossRefreshToken());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -283,6 +285,7 @@ class AuthServiceTest {
         assertFalse(actual.isNewUser());
         assertEquals("99999999", existingUser.getTossUserKey());
         assertEquals("legacy@toss.im", existingUser.getEmail());
+        assertEquals("toss-refresh-token", existingUser.getTossRefreshToken());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -347,6 +350,7 @@ class AuthServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         assertTrue(userCaptor.getValue().getNickname().startsWith("toss-"));
+        assertEquals("toss-refresh-token", userCaptor.getValue().getTossRefreshToken());
         assertNull(userCaptor.getValue().getEmail());
     }
 

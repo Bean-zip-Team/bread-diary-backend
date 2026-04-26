@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,7 +50,13 @@ public class UserWithdrawalService {
             boolean tossLinked = StringUtils.hasText(user.getTossUserKey());
 
             if (tossLinked) {
-                tossAuthClient.unlinkByUserKey(user.getTossUserKey());
+                TossAuthClient.TossGenerateTokenSuccess refreshedToken =
+                        tossAuthClient.refreshAccessToken(requireTossRefreshToken(user));
+                user.updateTossRefreshToken(normalizeText(refreshedToken.refreshToken()));
+                tossAuthClient.unlinkByUserKey(
+                        requireText(refreshedToken.accessToken(), "토스 AccessToken 재발급에 실패했습니다."),
+                        user.getTossUserKey()
+                );
             }
 
             hardDeleteUserData(user);
@@ -157,6 +162,24 @@ public class UserWithdrawalService {
         }
     }
 
+    private String requireTossRefreshToken(User user) {
+        String refreshToken = normalizeText(user.getTossRefreshToken());
+        if (!StringUtils.hasText(refreshToken)) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "토스 RefreshToken 정보가 없어 회원 탈퇴를 진행할 수 없습니다."
+            );
+        }
+        return refreshToken;
+    }
+
+    private String requireText(String value, String message) {
+        if (!StringUtils.hasText(value)) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, message);
+        }
+        return value.trim();
+    }
+
     private void logWebhookSuccess(
             String action,
             UUID userId,
@@ -231,8 +254,11 @@ public class UserWithdrawalService {
         if (eventType == TossWebhookEventType.UNLINK) {
             return "tossUnlinkWebhook";
         }
-
         return "tossWithdrawalWebhook";
+    }
+
+    private String normalizeText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private long durationMs(long startNanos) {
@@ -241,9 +267,5 @@ public class UserWithdrawalService {
 
     private String valueOrDefault(Object value) {
         return value == null ? "-" : value.toString();
-    }
-
-    private String normalizeText(String value) {
-        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

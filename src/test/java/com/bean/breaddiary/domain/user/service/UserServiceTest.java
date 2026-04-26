@@ -1,5 +1,8 @@
 package com.bean.breaddiary.domain.user.service;
 
+import com.bean.breaddiary.domain.auth.client.TossAuthClient;
+import com.bean.breaddiary.domain.auth.service.UserSessionService;
+import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.UserStatsProjection;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
 import com.bean.breaddiary.domain.user.dto.mapper.UserMapper;
@@ -26,15 +29,28 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     private UserRepository userRepository;
+    private BreadRepository breadRepository;
     private BreadRecordRepository breadRecordRepository;
+    private UserSessionService userSessionService;
+    private TossAuthClient tossAuthClient;
     private UserService userService;
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
+        breadRepository = mock(BreadRepository.class);
         breadRecordRepository = mock(BreadRecordRepository.class);
+        userSessionService = mock(UserSessionService.class);
+        tossAuthClient = mock(TossAuthClient.class);
         UserMapper userMapper = Mappers.getMapper(UserMapper.class);
-        userService = new UserService(userRepository, breadRecordRepository, userMapper);
+        userService = new UserService(
+                userRepository,
+                breadRepository,
+                breadRecordRepository,
+                userSessionService,
+                tossAuthClient,
+                userMapper
+        );
     }
 
     @Test

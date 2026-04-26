@@ -9,6 +9,7 @@ import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
+import com.bean.breaddiary.domain.user.dto.mapper.UserMapper;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
@@ -41,25 +42,25 @@ class UserWithdrawalServiceTest {
     private BreadRecordRepository breadRecordRepository;
     private UserSessionService userSessionService;
     private TossAuthClient tossAuthClient;
-    private UserWithdrawalService userWithdrawalService;
+    private UserMapper userMapper;
 
     @BeforeEach
     void setUp() {
-        userService = mock(UserService.class);
         userRepository = mock(UserRepository.class);
         breadRepository = mock(BreadRepository.class);
         breadRecordRepository = mock(BreadRecordRepository.class);
         userSessionService = mock(UserSessionService.class);
         tossAuthClient = mock(TossAuthClient.class);
-        userWithdrawalService = new UserWithdrawalService(
-                userService,
+        userMapper = mock(UserMapper.class);
+        userService = new UserService(
                 userRepository,
                 breadRepository,
                 breadRecordRepository,
                 userSessionService,
-                tossAuthClient
+                tossAuthClient,
+                userMapper
         );
-        ReflectionTestUtils.setField(userWithdrawalService, "tossWebhookSecret", "webhook-secret");
+        ReflectionTestUtils.setField(userService, "tossWebhookSecret", "webhook-secret");
     }
 
     @Test
@@ -69,20 +70,47 @@ class UserWithdrawalServiceTest {
         Bread breadToKeep = bread(userId, 1, "keep-bread");
         Bread breadToDelete = bread(userId, 2, "delete-bread");
 
-        when(userService.getUserById(userId)).thenReturn(user);
+        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
         when(breadRepository.findAllByCreatedBy(userId)).thenReturn(List.of(breadToKeep, breadToDelete));
         when(breadRecordRepository.existsByBread(breadToKeep)).thenReturn(true);
         when(breadRecordRepository.existsByBread(breadToDelete)).thenReturn(false);
+        when(tossAuthClient.refreshAccessToken("stored-toss-refresh-token"))
+                .thenReturn(new TossAuthClient.TossGenerateTokenSuccess(
+                        "new-toss-access-token",
+                        "new-toss-refresh-token",
+                        "Bearer",
+                        3600L,
+                        "profile"
+                ));
 
-        UserWithdrawalResponse response = userWithdrawalService.withdrawCurrentUser(userId);
+        UserWithdrawalResponse response = userService.withdrawCurrentUser(userId);
 
         assertTrue(response.isWithdrawn());
         assertNull(breadToKeep.getCreatedBy());
-        verify(tossAuthClient).unlinkByUserKey("toss-user-key-12345678");
+        assertEquals("new-toss-refresh-token", user.getTossRefreshToken());
+        verify(tossAuthClient).refreshAccessToken("stored-toss-refresh-token");
+        verify(tossAuthClient).unlinkByUserKey("new-toss-access-token", "toss-user-key-12345678");
         verify(breadRecordRepository).hardDeleteAllByUserId(userId);
         verify(breadRepository).delete(breadToDelete);
         verify(userSessionService).deleteAllSessions(userId);
         verify(userRepository).delete(user);
+    }
+
+    @Test
+    void withdrawCurrentUserFailsWhenTossRefreshTokenIsMissing() {
+        UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
+        User user = user(userId, "toss-user-key-without-refresh");
+        user.updateTossRefreshToken(null);
+
+        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> userService.withdrawCurrentUser(userId)
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
+        verifyNoInteractions(breadRepository, breadRecordRepository, userSessionService);
     }
 
     @Test
@@ -93,7 +121,7 @@ class UserWithdrawalServiceTest {
         when(userRepository.findByTossUserKey("toss-user-key-unlink"))
                 .thenReturn(Optional.of(user));
 
-        TossWebhookResponse response = userWithdrawalService.handleTossWebhook(
+        TossWebhookResponse response = userService.handleTossWebhook(
                 "webhook-secret",
                 new TossWebhookRequest("toss-user-key-unlink", TossWebhookEventType.UNLINK)
         );
@@ -114,7 +142,7 @@ class UserWithdrawalServiceTest {
                 .thenReturn(Optional.of(user));
         when(breadRepository.findAllByCreatedBy(userId)).thenReturn(List.of());
 
-        TossWebhookResponse response = userWithdrawalService.handleTossWebhook(
+        TossWebhookResponse response = userService.handleTossWebhook(
                 "webhook-secret",
                 new TossWebhookRequest("toss-user-key-withdrawal", TossWebhookEventType.WITHDRAWAL_TOSS)
         );
@@ -131,7 +159,7 @@ class UserWithdrawalServiceTest {
     void handleTossWebhookRejectsInvalidSecret() {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> userWithdrawalService.handleTossWebhook(
+                () -> userService.handleTossWebhook(
                         "wrong-secret",
                         new TossWebhookRequest("toss-user-key", TossWebhookEventType.UNLINK)
                 )
@@ -145,6 +173,7 @@ class UserWithdrawalServiceTest {
         return User.builder()
                 .id(userId)
                 .tossUserKey(tossUserKey)
+                .tossRefreshToken("stored-toss-refresh-token")
                 .nickname("bread-lover")
                 .email("bread@toss.im")
                 .build();
