@@ -120,6 +120,14 @@ public interface BreadMapper {
         return toPlaceholderUrl(imageUrl);
     }
 
+    default String resolveProfileImageUrl(String imageUrl, BreadProfileStatsResponse stats) {
+        if (stats != null && stats.getEatCount() != null && stats.getEatCount() > 0) {
+            return imageUrl;
+        }
+
+        return toPlaceholderUrl(imageUrl);
+    }
+
     private String toPlaceholderUrl(String imageUrl) {
         if (imageUrl == null) {
             return null;
@@ -162,7 +170,7 @@ public interface BreadMapper {
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "breadTypeLabel", source = "bread.breadType.name")
-    @Mapping(target = "imageUrl", source = "bread.imageUrl")
+    @Mapping(target = "imageUrl", expression = "java(resolveProfileImageUrl(bread.getImageUrl(), stats))")
     @Mapping(target = "stats", source = "stats")
     @Mapping(target = "records", source = "records")
     BreadProfileResponse mapToProfileResponse(

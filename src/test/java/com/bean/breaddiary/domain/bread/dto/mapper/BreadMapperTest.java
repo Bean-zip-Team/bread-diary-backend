@@ -3,6 +3,8 @@ package com.bean.breaddiary.domain.bread.dto.mapper;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteItemResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogItemResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
@@ -11,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -143,5 +147,45 @@ class BreadMapperTest {
         assertEquals(1, response.getItems().size());
         assertEquals("6", response.getNextCursor());
         assertEquals(true, response.getHasMore());
+    }
+
+    @Test
+    void mapToProfileResponseUsesPlaceholderImageForUncollectedBread() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(1)
+                .name("크루아상")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadProfileResponse response = breadMapper.mapToProfileResponse(
+                bread,
+                new BreadProfileStatsResponse(0L, null, null),
+                List.of()
+        );
+
+        assertEquals("https://cdn.bread-diary.app/breads/croissant_placeholder.webp", response.getImageUrl());
+    }
+
+    @Test
+    void mapToProfileResponseKeepsOriginalImageForCollectedBread() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(1)
+                .name("크루아상")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadProfileResponse response = breadMapper.mapToProfileResponse(
+                bread,
+                new BreadProfileStatsResponse(1L, 4.5, LocalDateTime.of(2026, 4, 1, 9, 0)),
+                List.of()
+        );
+
+        assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());
     }
 }
