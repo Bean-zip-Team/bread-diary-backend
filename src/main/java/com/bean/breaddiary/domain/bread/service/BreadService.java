@@ -34,7 +34,7 @@ public class BreadService {
     private static final int DEFAULT_AUTOCOMPLETE_LIMIT = 20;
     private static final int MAX_AUTOCOMPLETE_LIMIT = 50;
     private static final String DEFAULT_USER_BREAD_IMAGE_URL =
-            "https://cdn.bread-diary.app/catalog/default_user_bread.webp";
+            "https://du4zizlgiw14n.cloudfront.net/images/014_%EB%85%B9%EC%B0%A8%20%EC%8B%9D%EB%B9%B5_placeholder.png";
 
     private final BreadRepository breadRepository;
     private final BreadMapper breadMapper;
