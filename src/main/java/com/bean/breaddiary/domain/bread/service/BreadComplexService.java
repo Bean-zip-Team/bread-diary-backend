@@ -69,13 +69,13 @@ public class BreadComplexService {
         Map<UUID, BreadRecordCatalogStats> statsMap = resolveCatalogStats(userId, candidates);
 
         List<Bread> filteredBreads = applyFilter(candidates, statsMap, userId, normalizedFilter);
-        List<Bread> sortedBreads = applySort(filteredBreads, statsMap, normalizedSort);
-        List<Bread> cursorAppliedBreads = applyCursor(sortedBreads, statsMap, normalizedSort, cursor);
+        List<Bread> sortedBreads = applySort(filteredBreads, statsMap, normalizedSort, normalizedFilter);
+        List<Bread> cursorAppliedBreads = applyCursor(sortedBreads, statsMap, normalizedSort, normalizedFilter, cursor);
         List<Bread> pageBreads = takePage(cursorAppliedBreads, normalizedLimit);
 
         boolean hasMore = cursorAppliedBreads.size() > normalizedLimit;
         String nextCursor = hasMore && !pageBreads.isEmpty()
-                ? createNextCursor(pageBreads.get(pageBreads.size() - 1), statsMap, normalizedSort)
+                ? createNextCursor(pageBreads.get(pageBreads.size() - 1), statsMap, normalizedSort, normalizedFilter)
                 : null;
 
         return breadService.createCatalogListResponse(
@@ -165,7 +165,8 @@ public class BreadComplexService {
     private List<Bread> applySort(
             List<Bread> breads,
             Map<UUID, BreadRecordCatalogStats> statsMap,
-            String sort
+            String sort,
+            String filter
     ) {
         List<Bread> sortedBreads = new ArrayList<>(breads);
 
@@ -187,6 +188,14 @@ public class BreadComplexService {
                     .toList();
         }
 
+        if (FILTER_ALL.equals(filter)) {
+            sortedBreads.sort(Comparator
+                    .comparing((Bread bread) -> isCollected(bread, statsMap), Comparator.reverseOrder())
+                    .thenComparing(Bread::getStickerNumber)
+                    .thenComparing(bread -> bread.getId().toString()));
+            return sortedBreads;
+        }
+
         sortedBreads.sort(Comparator.comparing(Bread::getStickerNumber));
         return sortedBreads;
     }
@@ -195,13 +204,14 @@ public class BreadComplexService {
             List<Bread> breads,
             Map<UUID, BreadRecordCatalogStats> statsMap,
             String sort,
+            String filter,
             String cursor
     ) {
         if (cursor == null || cursor.isBlank()) {
             return breads;
         }
 
-        if (SORT_STICKER_NUMBER.equals(sort)) {
+        if (SORT_STICKER_NUMBER.equals(sort) && !FILTER_ALL.equals(filter)) {
             return applyStickerNumberCursor(breads, cursor);
         }
 
@@ -245,7 +255,8 @@ public class BreadComplexService {
     private String createNextCursor(
             Bread lastBread,
             Map<UUID, BreadRecordCatalogStats> statsMap,
-            String sort
+            String sort,
+            String filter
     ) {
         BreadRecordCatalogStats stats = statsMap.get(lastBread.getId());
 
@@ -255,6 +266,10 @@ public class BreadComplexService {
 
         if (SORT_RATING.equals(sort) && stats != null && stats.getAvgRating() != null) {
             return roundRating(stats.getAvgRating()) + "_" + lastBread.getId();
+        }
+
+        if (FILTER_ALL.equals(filter)) {
+            return lastBread.getStickerNumber() + "_" + lastBread.getId();
         }
 
         return String.valueOf(lastBread.getStickerNumber());

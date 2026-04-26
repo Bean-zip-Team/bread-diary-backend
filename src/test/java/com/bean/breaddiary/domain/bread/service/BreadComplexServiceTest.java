@@ -133,6 +133,129 @@ class BreadComplexServiceTest {
     }
 
     @Test
+    void getBreadCatalogSortsCollectedBreadsFirstForAllFilter() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Bread uncollectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                1,
+                "소금빵",
+                PASTRY
+        );
+        Bread collectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                2,
+                "크루아상",
+                PASTRY
+        );
+        Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(
+                collectedBread.getId(),
+                new BreadRecordCatalogStats(
+                        collectedBread.getId(),
+                        1L,
+                        4.5,
+                        null,
+                        LocalDate.of(2026, 3, 14)
+                )
+        );
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 2L);
+
+        when(breadService.findCatalogCandidates(null, null)).thenReturn(List.of(uncollectedBread, collectedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(
+                userId,
+                List.of(uncollectedBread.getId(), collectedBread.getId())
+        )).thenReturn(statsMap);
+        when(breadService.createCatalogListResponse(
+                List.of(collectedBread, uncollectedBread),
+                statsMap,
+                null,
+                false,
+                2L
+        )).thenReturn(expected);
+
+        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
+                "sticker_number",
+                "all",
+                null,
+                null,
+                null,
+                20,
+                userId
+        );
+
+        assertSame(expected, actual);
+        verify(breadService).createCatalogListResponse(
+                List.of(collectedBread, uncollectedBread),
+                statsMap,
+                null,
+                false,
+                2L
+        );
+    }
+
+    @Test
+    void getBreadCatalogUsesCompositeCursorForAllFilterOrdering() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Bread firstCollectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                2,
+                "크루아상",
+                PASTRY
+        );
+        Bread secondCollectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                3,
+                "베이글",
+                BAGEL
+        );
+        Bread uncollectedBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000003"),
+                1,
+                "소금빵",
+                PASTRY
+        );
+        Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(
+                firstCollectedBread.getId(),
+                new BreadRecordCatalogStats(firstCollectedBread.getId(), 1L, 4.0, null, LocalDate.of(2026, 3, 14)),
+                secondCollectedBread.getId(),
+                new BreadRecordCatalogStats(secondCollectedBread.getId(), 1L, 4.5, null, LocalDate.of(2026, 3, 15))
+        );
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "2_" + firstCollectedBread.getId(), true, 3L);
+
+        when(breadService.findCatalogCandidates(null, null))
+                .thenReturn(List.of(uncollectedBread, firstCollectedBread, secondCollectedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(
+                userId,
+                List.of(uncollectedBread.getId(), firstCollectedBread.getId(), secondCollectedBread.getId())
+        )).thenReturn(statsMap);
+        when(breadService.createCatalogListResponse(
+                List.of(firstCollectedBread),
+                statsMap,
+                "2_" + firstCollectedBread.getId(),
+                true,
+                3L
+        )).thenReturn(expected);
+
+        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
+                "sticker_number",
+                "all",
+                null,
+                null,
+                null,
+                1,
+                userId
+        );
+
+        assertSame(expected, actual);
+        verify(breadService).createCatalogListResponse(
+                List.of(firstCollectedBread),
+                statsMap,
+                "2_" + firstCollectedBread.getId(),
+                true,
+                3L
+        );
+    }
+
+    @Test
     void getBreadCatalogAppliesCollectedFilterWithUserStats() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         Bread collectedBread = createBread(
