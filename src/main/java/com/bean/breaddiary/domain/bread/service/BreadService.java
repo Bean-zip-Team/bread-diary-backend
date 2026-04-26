@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,7 +31,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class BreadService {
 
-    private static final int AUTOCOMPLETE_LIMIT = 20;
+    private static final int DEFAULT_AUTOCOMPLETE_LIMIT = 20;
+    private static final int MAX_AUTOCOMPLETE_LIMIT = 50;
     private static final String DEFAULT_USER_BREAD_IMAGE_URL =
             "https://cdn.bread-diary.app/catalog/default_user_bread.webp";
 
@@ -47,24 +51,34 @@ public class BreadService {
         return breadRepository.existsByName(name);
     }
 
-    public List<Bread> searchAutocompleteBreads(String query) {
-        Pageable limit = PageRequest.of(0, AUTOCOMPLETE_LIMIT);
+    public AutocompleteSlice searchAutocompleteBreads(String query, String cursor, Integer limit) {
+        int normalizedLimit = normalizeAutocompleteLimit(limit);
+        Pageable pageable = PageRequest.of(0, normalizedLimit + 1);
 
         if (query == null || query.isBlank()) {
-            return breadRepository.findPopularOrderByRecordCountDesc(limit);
+            return searchPopularAutocompleteBreads(cursor, normalizedLimit, pageable);
         }
 
-        return breadRepository.findByNameContainingIgnoreCaseOrderByStickerNumberAsc(
+        Integer cursorStickerNumber = parseStickerNumberCursor(cursor);
+        List<Bread> breads = breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
                 query.trim(),
-                limit
+                cursorStickerNumber,
+                pageable
         );
+
+        return createStickerNumberAutocompleteSlice(breads, normalizedLimit);
     }
 
     public BreadAutocompleteResponse createAutocompleteResponse(
-            List<Bread> breads,
+            AutocompleteSlice autocompleteSlice,
             Map<UUID, Long> eatCounts
     ) {
-        return breadMapper.mapToAutocompleteResponse(breads, eatCounts);
+        return breadMapper.mapToAutocompleteResponse(
+                autocompleteSlice.getItems(),
+                eatCounts,
+                autocompleteSlice.getNextCursor(),
+                autocompleteSlice.getHasMore()
+        );
     }
 
     public List<Bread> findAllSystemCatalogBreads() {
@@ -149,5 +163,98 @@ public class BreadService {
         }
 
         return search.trim();
+    }
+
+    private AutocompleteSlice searchPopularAutocompleteBreads(
+            String cursor,
+            int normalizedLimit,
+            Pageable pageable
+    ) {
+        PopularAutocompleteCursor popularCursor = parsePopularAutocompleteCursor(cursor);
+        List<Bread> breads = breadRepository.findPopularAutocompleteAfterCursor(
+                popularCursor.getRecordCount(),
+                popularCursor.getStickerNumber(),
+                pageable
+        );
+
+        if (breads.size() <= normalizedLimit) {
+            return new AutocompleteSlice(breads, null, false);
+        }
+
+        List<Bread> pageItems = breads.subList(0, normalizedLimit);
+        Bread lastBread = pageItems.get(pageItems.size() - 1);
+        Long recordCount = breadRepository.countActiveRecordsByBreadId(lastBread.getId());
+        String nextCursor = recordCount + "_" + lastBread.getStickerNumber();
+
+        return new AutocompleteSlice(pageItems, nextCursor, true);
+    }
+
+    private AutocompleteSlice createStickerNumberAutocompleteSlice(List<Bread> breads, int normalizedLimit) {
+        if (breads.size() <= normalizedLimit) {
+            return new AutocompleteSlice(breads, null, false);
+        }
+
+        List<Bread> pageItems = breads.subList(0, normalizedLimit);
+        String nextCursor = String.valueOf(pageItems.get(pageItems.size() - 1).getStickerNumber());
+
+        return new AutocompleteSlice(pageItems, nextCursor, true);
+    }
+
+    private int normalizeAutocompleteLimit(Integer limit) {
+        if (limit == null || limit < 1) {
+            return DEFAULT_AUTOCOMPLETE_LIMIT;
+        }
+
+        return Math.min(limit, MAX_AUTOCOMPLETE_LIMIT);
+    }
+
+    private Integer parseStickerNumberCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(cursor.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private PopularAutocompleteCursor parsePopularAutocompleteCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return PopularAutocompleteCursor.empty();
+        }
+
+        int separatorIndex = cursor.indexOf('_');
+        if (separatorIndex < 0 || separatorIndex == cursor.length() - 1) {
+            return PopularAutocompleteCursor.empty();
+        }
+
+        try {
+            long recordCount = Long.parseLong(cursor.substring(0, separatorIndex).trim());
+            int stickerNumber = Integer.parseInt(cursor.substring(separatorIndex + 1).trim());
+            return new PopularAutocompleteCursor(recordCount, stickerNumber);
+        } catch (NumberFormatException ignored) {
+            return PopularAutocompleteCursor.empty();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class AutocompleteSlice {
+        private List<Bread> items;
+        private String nextCursor;
+        private Boolean hasMore;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    private static class PopularAutocompleteCursor {
+        private Long recordCount;
+        private Integer stickerNumber;
+
+        private static PopularAutocompleteCursor empty() {
+            return new PopularAutocompleteCursor(null, null);
+        }
     }
 }

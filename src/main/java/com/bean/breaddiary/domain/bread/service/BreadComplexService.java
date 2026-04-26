@@ -42,12 +42,13 @@ public class BreadComplexService {
     private final BreadTypeService breadTypeService;
     private final BreadRecordService breadRecordService;
 
-    public BreadAutocompleteResponse autocompleteBreads(String query, UUID userId) {
-        List<Bread> breads = breadService.searchAutocompleteBreads(query);
+    public BreadAutocompleteResponse autocompleteBreads(String query, String cursor, Integer limit, UUID userId) {
+        BreadService.AutocompleteSlice autocompleteSlice = breadService.searchAutocompleteBreads(query, cursor, limit);
+        List<Bread> breads = autocompleteSlice.getItems();
 
         Map<UUID, Long> eatCounts = resolveEatCounts(userId, breads);
 
-        return breadService.createAutocompleteResponse(breads, eatCounts);
+        return breadService.createAutocompleteResponse(autocompleteSlice, eatCounts);
     }
 
     public BreadCatalogListResponse getBreadCatalog(

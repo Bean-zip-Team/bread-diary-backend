@@ -30,6 +30,19 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
     @Query("""
             select b
             from Bread b
+            where lower(b.name) like lower(concat('%', :name, '%'))
+              and (:cursorStickerNumber is null or b.stickerNumber > :cursorStickerNumber)
+            order by b.stickerNumber asc
+            """)
+    List<Bread> findAutocompleteByNameContainingAfterStickerNumber(
+            @Param("name") String name,
+            @Param("cursorStickerNumber") Integer cursorStickerNumber,
+            Pageable pageable
+    );
+
+    @Query("""
+            select b
+            from Bread b
             left join BreadRecord br
                 on br.bread = b
                 and br.deletedAt is null
@@ -37,6 +50,32 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
             order by count(br) desc, b.stickerNumber asc
             """)
     List<Bread> findPopularOrderByRecordCountDesc(Pageable pageable);
+
+    @Query("""
+            select b
+            from Bread b
+            left join BreadRecord br
+                on br.bread = b
+                and br.deletedAt is null
+            group by b
+            having (:recordCountCursor is null
+                    or count(br) < :recordCountCursor
+                    or (count(br) = :recordCountCursor and b.stickerNumber > :stickerNumberCursor))
+            order by count(br) desc, b.stickerNumber asc
+            """)
+    List<Bread> findPopularAutocompleteAfterCursor(
+            @Param("recordCountCursor") Long recordCountCursor,
+            @Param("stickerNumberCursor") Integer stickerNumberCursor,
+            Pageable pageable
+    );
+
+    @Query("""
+            select count(br)
+            from BreadRecord br
+            where br.bread.id = :breadId
+              and br.deletedAt is null
+            """)
+    Long countActiveRecordsByBreadId(@Param("breadId") UUID breadId);
 
     @Query("""
             select b

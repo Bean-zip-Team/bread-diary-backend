@@ -1,6 +1,7 @@
 package com.bean.breaddiary.domain.bread.dto.mapper;
 
 import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteItemResponse;
+import com.bean.breaddiary.domain.bread.dto.response.BreadAutocompleteResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogItemResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadtype.entity.BreadType;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
@@ -118,5 +120,28 @@ class BreadMapperTest {
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant_placeholder.webp", response.getImageUrl());
         assertEquals(0L, response.getEatCount());
+    }
+
+    @Test
+    void mapToAutocompleteResponseIncludesPaginationMetadata() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(6)
+                .name("크루아상")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadAutocompleteResponse response = breadMapper.mapToAutocompleteResponse(
+                java.util.List.of(bread),
+                Map.of(breadId, 5L),
+                "6",
+                true
+        );
+
+        assertEquals(1, response.getItems().size());
+        assertEquals("6", response.getNextCursor());
+        assertEquals(true, response.getHasMore());
     }
 }

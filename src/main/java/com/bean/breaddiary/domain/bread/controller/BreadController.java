@@ -118,10 +118,14 @@ public class BreadController {
     public ResponseEntity<ApiResponse<BreadAutocompleteResponse>> autocompleteBreads(
             @Parameter(description = "검색어. 미입력 시 인기순 빵 목록을 반환합니다.", example = "크루")
             @RequestParam(value = "q", required = false) String query,
+            @Parameter(description = "페이지네이션 커서. 검색어가 있으면 마지막 sticker_number, 없으면 {record_count}_{sticker_number} 형식", example = "6")
+            @RequestParam(value = "cursor", required = false) String cursor,
+            @Parameter(description = "페이지당 개수. 기본 20, 최대 50", example = "20")
+            @RequestParam(value = "limit", required = false) Integer limit,
             @Parameter(hidden = true) HttpServletRequest request
     ) {
         UUID userId = AuthRequestAttributes.getOptionalUserId(request);
-        BreadAutocompleteResponse response = breadComplexService.autocompleteBreads(query, userId);
+        BreadAutocompleteResponse response = breadComplexService.autocompleteBreads(query, cursor, limit, userId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
