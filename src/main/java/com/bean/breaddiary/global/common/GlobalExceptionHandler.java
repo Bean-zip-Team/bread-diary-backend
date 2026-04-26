@@ -134,7 +134,7 @@ public class GlobalExceptionHandler {
             HttpMediaTypeNotSupportedException exception,
             HttpServletRequest request
     ) {
-        String message = "?붿껌 ?뺤떇???щ컮瑜댁? ?딆뒿?덈떎.";
+        String message = "요청 형식이 올바르지 않습니다.";
 
         log.warn(
                 "Invalid request: code={} method={} path={} requestId={} errorType={}",
