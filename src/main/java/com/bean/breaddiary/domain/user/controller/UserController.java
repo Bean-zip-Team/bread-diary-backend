@@ -3,6 +3,7 @@ package com.bean.breaddiary.domain.user.controller;
 import com.bean.breaddiary.domain.user.dto.response.UserMeResponse;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.service.UserService;
+import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.common.ApiResponse;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final UserWithdrawalService userWithdrawalService;
 
     @Operation(
             summary = "내 프로필 조회",
@@ -74,7 +76,7 @@ public class UserController {
             @Parameter(hidden = true) HttpServletRequest request
     ) {
         UUID userId = AuthRequestAttributes.getRequiredUserId(request);
-        UserWithdrawalResponse response = userService.withdrawCurrentUser(userId);
+        UserWithdrawalResponse response = userWithdrawalService.withdrawCurrentUser(userId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
