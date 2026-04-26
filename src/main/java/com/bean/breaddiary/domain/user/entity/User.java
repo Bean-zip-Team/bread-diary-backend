@@ -51,6 +51,9 @@ public class User {
     @Column(name = "toss_user_key", length = 100, unique = true)
     private String tossUserKey;
 
+    @Column(name = "toss_refresh_token", length = 1000)
+    private String tossRefreshToken;
+
     @Column(name = "email", length = 255, unique = true)
     private String email;
 
@@ -92,6 +95,10 @@ public class User {
     ) {
         updateFromToss(tossUserKey, nickname, email);
         this.deletedAt = null;
+    }
+
+    public void updateTossRefreshToken(String tossRefreshToken) {
+        this.tossRefreshToken = tossRefreshToken;
     }
 
     public void delete() {

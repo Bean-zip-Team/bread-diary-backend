@@ -63,6 +63,7 @@ public class AuthService {
 
             ResolvedTossProfile tossProfile = resolveTossProfile(tossUserInfo);
             UserResolution userResolution = findOrCreateUser(tossProfile);
+            userResolution.user().updateTossRefreshToken(normalizeNullable(tossToken.refreshToken()));
             userId = userResolution.user().getId();
 
             UserSession userSession = createPendingSession(userResolution.user(), issuedAt);
@@ -300,11 +301,12 @@ public class AuthService {
         }
 
         User user = userRepository.save(
-                User.builder()
-                        .tossUserKey(tossProfile.tossUserKey())
-                        .nickname(tossProfile.nickname())
-                        .email(tossProfile.email())
-                        .build()
+                        User.builder()
+                                .tossUserKey(tossProfile.tossUserKey())
+                                .tossRefreshToken(null)
+                                .nickname(tossProfile.nickname())
+                                .email(tossProfile.email())
+                                .build()
         );
 
         return new UserResolution(user, true);

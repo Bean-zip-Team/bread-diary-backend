@@ -8,7 +8,7 @@ import com.bean.breaddiary.domain.auth.dto.response.AuthTokenResponse;
 import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
 import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
 import com.bean.breaddiary.domain.auth.service.AuthService;
-import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
+import com.bean.breaddiary.domain.user.service.UserService;
 import com.bean.breaddiary.global.common.ApiResponse;
 import com.bean.breaddiary.global.interceptor.AuthRequestAttributes;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +39,7 @@ public class AuthController {
     private static final String TOSS_WEBHOOK_SECRET_HEADER = "x-toss-webhook-secret";
 
     private final AuthService authService;
-    private final UserWithdrawalService userWithdrawalService;
+    private final UserService userService;
 
     @Operation(
             summary = "토스 로그인",
@@ -139,7 +139,7 @@ public class AuthController {
             @Valid @RequestBody TossWebhookRequest request
     ) {
         return ResponseEntity.ok(
-                ApiResponse.success(userWithdrawalService.handleTossWebhook(webhookSecret, request))
+                ApiResponse.success(userService.handleTossWebhook(webhookSecret, request))
         );
     }
 }

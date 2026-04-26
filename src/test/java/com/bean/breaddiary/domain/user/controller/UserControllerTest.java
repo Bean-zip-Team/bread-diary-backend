@@ -7,7 +7,6 @@ import com.bean.breaddiary.domain.user.dto.response.UserMeResponse;
 import com.bean.breaddiary.domain.user.dto.response.UserStatsResponse;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.service.UserService;
-import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.interceptor.AuthInterceptor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +44,6 @@ class UserControllerTest {
     private static final LocalDateTime PROFILE_CREATED_AT = LocalDateTime.of(2026, 4, 1, 0, 0);
 
     private UserService userService;
-    private UserWithdrawalService userWithdrawalService;
     private UserSessionService userSessionService;
     private JwtTokenProvider jwtTokenProvider;
     private MockMvc mockMvc;
@@ -56,7 +54,6 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         userService = mock(UserService.class);
-        userWithdrawalService = mock(UserWithdrawalService.class);
         userSessionService = mock(UserSessionService.class);
         jwtTokenProvider = new JwtTokenProvider(
                 new ObjectMapper(),
@@ -67,7 +64,7 @@ class UserControllerTest {
         accessTokenExpiresAt = tokenIssuedAt.plusDays(1);
         refreshTokenExpiresAt = tokenIssuedAt.plusDays(30);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new UserController(userService, userWithdrawalService))
+                .standaloneSetup(new UserController(userService))
                 .addInterceptors(new AuthInterceptor(jwtTokenProvider, userSessionService))
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
@@ -117,7 +114,7 @@ class UserControllerTest {
     void withdrawCurrentUserReturnsSuccessResponse() throws Exception {
         when(userSessionService.findActiveSession(eq(SESSION_ID), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(activeSession()));
-        when(userWithdrawalService.withdrawCurrentUser(AUTHENTICATED_USER_ID))
+        when(userService.withdrawCurrentUser(AUTHENTICATED_USER_ID))
                 .thenReturn(new UserWithdrawalResponse(true));
 
         mockMvc.perform(delete("/users/me")
@@ -127,7 +124,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.withdrawn").value(true));
 
-        verify(userWithdrawalService).withdrawCurrentUser(AUTHENTICATED_USER_ID);
+        verify(userService).withdrawCurrentUser(AUTHENTICATED_USER_ID);
     }
 
     @Test
@@ -136,7 +133,7 @@ class UserControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(userService, userWithdrawalService, userSessionService);
+        verifyNoInteractions(userService, userSessionService);
     }
 
     @Test
@@ -146,7 +143,7 @@ class UserControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(userService, userWithdrawalService, userSessionService);
+        verifyNoInteractions(userService, userSessionService);
     }
 
     @Test

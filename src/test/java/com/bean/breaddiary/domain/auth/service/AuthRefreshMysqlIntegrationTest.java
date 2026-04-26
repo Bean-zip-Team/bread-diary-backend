@@ -9,7 +9,7 @@ import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
-import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
+import com.bean.breaddiary.domain.user.service.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "app.auth.jwt.secret=test-secret-key",
         "app.auth.jwt.issuer=bread-diary",
         "app.auth.toss.base-url=http://localhost:65535",
-        "TOSS_UNLINK_ACCESS_TOKEN=test-unlink-token",
         "TOSS_WEBHOOK_SECRET=test-webhook-secret",
         "app.aws.s3.region=ap-northeast-2",
         "app.aws.s3.bucket=test-bucket",
@@ -89,7 +88,7 @@ class AuthRefreshMysqlIntegrationTest {
     private BreadRecordRepository breadRecordRepository;
 
     @Autowired
-    private UserWithdrawalService userWithdrawalService;
+    private UserService userService;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -198,7 +197,7 @@ class AuthRefreshMysqlIntegrationTest {
         User user = userRepository.findById(fixture.userId())
                 .orElseThrow();
 
-        userWithdrawalService.hardDeleteUserData(user);
+        userService.hardDeleteUserData(user);
 
         RefreshResult result = refresh(fixture.refreshToken());
 
