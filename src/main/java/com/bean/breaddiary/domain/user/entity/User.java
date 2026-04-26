@@ -117,6 +117,12 @@ public class User {
         this.tossAccessTokenExpiresAt = tossAccessTokenExpiresAt;
     }
 
+    public void clearTossTokens() {
+        this.tossAccessToken = null;
+        this.tossRefreshToken = null;
+        this.tossAccessTokenExpiresAt = null;
+    }
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
     }
