@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,13 +51,8 @@ public class UserWithdrawalService {
             boolean tossLinked = StringUtils.hasText(user.getTossUserKey());
 
             if (tossLinked) {
-                TossAuthClient.TossGenerateTokenSuccess refreshedToken =
-                        tossAuthClient.refreshAccessToken(requireTossRefreshToken(user));
-                user.updateTossRefreshToken(normalizeText(refreshedToken.refreshToken()));
-                tossAuthClient.unlinkByUserKey(
-                        requireText(refreshedToken.accessToken(), "토스 AccessToken 재발급에 실패했습니다."),
-                        user.getTossUserKey()
-                );
+                String tossAccessToken = resolveTossAccessToken(user);
+                tossAuthClient.unlinkByUserKey(tossAccessToken, user.getTossUserKey());
             }
 
             hardDeleteUserData(user);
@@ -171,6 +167,49 @@ public class UserWithdrawalService {
             );
         }
         return refreshToken;
+    }
+
+    private String resolveTossAccessToken(User user) {
+        if (hasUsableTossAccessToken(user)) {
+            return user.getTossAccessToken().trim();
+        }
+
+        TossAuthClient.TossGenerateTokenSuccess refreshedToken =
+                tossAuthClient.refreshAccessToken(requireTossRefreshToken(user));
+
+        String refreshedAccessToken = requireText(
+                refreshedToken.accessToken(),
+                "토스 AccessToken 재발급에 실패했습니다."
+        );
+        String refreshedRefreshToken = normalizeText(refreshedToken.refreshToken());
+        if (!StringUtils.hasText(refreshedRefreshToken)) {
+            refreshedRefreshToken = user.getTossRefreshToken();
+        }
+
+        LocalDateTime accessTokenExpiresAt = refreshedToken.expiresIn() == null
+                ? null
+                : LocalDateTime.now().plusSeconds(refreshedToken.expiresIn());
+
+        user.updateTossTokens(
+                refreshedAccessToken,
+                refreshedRefreshToken,
+                accessTokenExpiresAt
+        );
+
+        return refreshedAccessToken;
+    }
+
+    private boolean hasUsableTossAccessToken(User user) {
+        if (!StringUtils.hasText(user.getTossAccessToken())) {
+            return false;
+        }
+
+        LocalDateTime expiresAt = user.getTossAccessTokenExpiresAt();
+        if (expiresAt == null) {
+            return true;
+        }
+
+        return expiresAt.isAfter(LocalDateTime.now());
     }
 
     private String requireText(String value, String message) {

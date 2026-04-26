@@ -51,8 +51,14 @@ public class User {
     @Column(name = "toss_user_key", length = 100, unique = true)
     private String tossUserKey;
 
+    @Column(name = "toss_access_token", length = 1000)
+    private String tossAccessToken;
+
     @Column(name = "toss_refresh_token", length = 1000)
     private String tossRefreshToken;
+
+    @Column(name = "toss_access_token_expires_at")
+    private LocalDateTime tossAccessTokenExpiresAt;
 
     @Column(name = "email", length = 255, unique = true)
     private String email;
@@ -99,6 +105,16 @@ public class User {
 
     public void updateTossRefreshToken(String tossRefreshToken) {
         this.tossRefreshToken = tossRefreshToken;
+    }
+
+    public void updateTossTokens(
+            String tossAccessToken,
+            String tossRefreshToken,
+            LocalDateTime tossAccessTokenExpiresAt
+    ) {
+        this.tossAccessToken = tossAccessToken;
+        this.tossRefreshToken = tossRefreshToken;
+        this.tossAccessTokenExpiresAt = tossAccessTokenExpiresAt;
     }
 
     public void delete() {

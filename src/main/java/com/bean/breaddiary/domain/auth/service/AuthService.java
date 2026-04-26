@@ -63,7 +63,7 @@ public class AuthService {
 
             ResolvedTossProfile tossProfile = resolveTossProfile(tossUserInfo);
             UserResolution userResolution = findOrCreateUser(tossProfile);
-            userResolution.user().updateTossRefreshToken(normalizeNullable(tossToken.refreshToken()));
+            updateTossTokens(userResolution.user(), tossToken, issuedAt);
             userId = userResolution.user().getId();
 
             UserSession userSession = createPendingSession(userResolution.user(), issuedAt);
@@ -429,6 +429,20 @@ public class AuthService {
 
     private String normalizeNullable(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private void updateTossTokens(
+            User user,
+            TossAuthClient.TossGenerateTokenSuccess tossToken,
+            LocalDateTime issuedAt
+    ) {
+        String accessToken = normalizeNullable(tossToken.accessToken());
+        String refreshToken = normalizeNullable(tossToken.refreshToken());
+        LocalDateTime accessTokenExpiresAt = tossToken.expiresIn() == null
+                ? null
+                : issuedAt.plusSeconds(tossToken.expiresIn());
+
+        user.updateTossTokens(accessToken, refreshToken, accessTokenExpiresAt);
     }
 
     private String hashRefreshToken(String refreshToken) {
