@@ -21,4 +21,10 @@ public class BreadAutocompleteResponse {
             arraySchema = @Schema(description = "자동완성 빵 목록")
     )
     private List<BreadAutocompleteItemResponse> items;
+
+    @Schema(description = "다음 페이지 커서. 다음 페이지가 없으면 null", example = "6", nullable = true)
+    private String nextCursor;
+
+    @Schema(description = "다음 페이지 존재 여부", example = "true")
+    private Boolean hasMore;
 }

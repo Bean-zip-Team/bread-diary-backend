@@ -46,7 +46,12 @@ public interface BreadMapper {
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(eatCount))")
     BreadAutocompleteItemResponse mapToAutocompleteItem(Bread bread, Long eatCount);
 
-    default BreadAutocompleteResponse mapToAutocompleteResponse(List<Bread> breads, Map<UUID, Long> eatCounts) {
+    default BreadAutocompleteResponse mapToAutocompleteResponse(
+            List<Bread> breads,
+            Map<UUID, Long> eatCounts,
+            String nextCursor,
+            boolean hasMore
+    ) {
         List<BreadAutocompleteItemResponse> items = breads.stream()
                 .map(bread -> mapToAutocompleteItem(
                         bread,
@@ -54,7 +59,7 @@ public interface BreadMapper {
                 ))
                 .toList();
 
-        return new BreadAutocompleteResponse(items);
+        return new BreadAutocompleteResponse(items, nextCursor, hasMore);
     }
 
     default Long resolveEatCount(Long eatCount) {

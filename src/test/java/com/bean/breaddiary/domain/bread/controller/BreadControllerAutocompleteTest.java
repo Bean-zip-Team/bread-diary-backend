@@ -41,21 +41,25 @@ class BreadControllerAutocompleteTest {
     void autocompleteBreadsReturnsSpecResponseWithSnakeCaseFields() throws Exception {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
-        BreadAutocompleteResponse response = new BreadAutocompleteResponse(List.of(
-                new BreadAutocompleteItemResponse(
+        BreadAutocompleteResponse response = new BreadAutocompleteResponse(
+                List.of(new BreadAutocompleteItemResponse(
                         breadId,
                         "크루아상",
                         "PASTRY",
                         6,
                         "https://cdn.bread-diary.app/breads/croissant.webp",
                         5L
-                )
-        ));
+                )),
+                "6",
+                true
+        );
 
-        when(breadComplexService.autocompleteBreads("크루", userId)).thenReturn(response);
+        when(breadComplexService.autocompleteBreads("크루", "3", 10, userId)).thenReturn(response);
 
         mockMvc.perform(get("/breads/autocomplete")
                         .param("q", "크루")
+                        .param("cursor", "3")
+                        .param("limit", "10")
                         .requestAttr(AuthRequestAttributes.USER_ID, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -65,23 +69,26 @@ class BreadControllerAutocompleteTest {
                 .andExpect(jsonPath("$.data.items[0].sticker_number").value(6))
                 .andExpect(jsonPath("$.data.items[0].image_url").value("https://cdn.bread-diary.app/breads/croissant.webp"))
                 .andExpect(jsonPath("$.data.items[0].eat_count").value(5))
+                .andExpect(jsonPath("$.data.next_cursor").value("6"))
+                .andExpect(jsonPath("$.data.has_more").value(true))
                 .andExpect(jsonPath("$.data.items[0].breadId").doesNotExist())
                 .andExpect(jsonPath("$.data.items[0].breadType").doesNotExist());
 
-        verify(breadComplexService).autocompleteBreads("크루", userId);
+        verify(breadComplexService).autocompleteBreads("크루", "3", 10, userId);
     }
 
     @Test
     void autocompleteBreadsAllowsAnonymousRequest() throws Exception {
-        when(breadComplexService.autocompleteBreads(null, null))
-                .thenReturn(new BreadAutocompleteResponse(List.of()));
+        when(breadComplexService.autocompleteBreads(null, null, null, null))
+                .thenReturn(new BreadAutocompleteResponse(List.of(), null, false));
 
         mockMvc.perform(get("/breads/autocomplete"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.items").isArray());
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.has_more").value(false));
 
-        verify(breadComplexService).autocompleteBreads(null, null);
+        verify(breadComplexService).autocompleteBreads(null, null, null, null);
     }
 
     private JsonMapper snakeCaseObjectMapper() {

@@ -52,35 +52,37 @@ class BreadComplexServiceTest {
                 .breadType(PASTRY)
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .build();
-        BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of());
+        BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(bread), "6", true);
+        BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), "6", true);
 
-        when(breadService.searchAutocompleteBreads("크루")).thenReturn(List.of(bread));
+        when(breadService.searchAutocompleteBreads("크루", "3", 10)).thenReturn(autocompleteSlice);
         when(breadRecordService.countActiveRecordsByBreadIds(userId, List.of(breadId)))
                 .thenReturn(Map.of(breadId, 5L));
-        when(breadService.createAutocompleteResponse(List.of(bread), Map.of(breadId, 5L)))
+        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L)))
                 .thenReturn(expected);
 
-        BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads("크루", userId);
+        BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads("크루", "3", 10, userId);
 
         assertSame(expected, actual);
-        verify(breadService).searchAutocompleteBreads("크루");
+        verify(breadService).searchAutocompleteBreads("크루", "3", 10);
         verify(breadRecordService).countActiveRecordsByBreadIds(userId, List.of(breadId));
-        verify(breadService).createAutocompleteResponse(List.of(bread), Map.of(breadId, 5L));
+        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L));
     }
 
     @Test
     void autocompleteBreadsSkipsEatCountLookupForAnonymousUser() {
-        BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of());
+        BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(), null, false);
+        BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), null, false);
 
-        when(breadService.searchAutocompleteBreads(null)).thenReturn(List.of());
-        when(breadService.createAutocompleteResponse(List.of(), Map.of())).thenReturn(expected);
+        when(breadService.searchAutocompleteBreads(null, null, null)).thenReturn(autocompleteSlice);
+        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of())).thenReturn(expected);
 
-        BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads(null, null);
+        BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads(null, null, null, null);
 
         assertSame(expected, actual);
-        verify(breadService).searchAutocompleteBreads(null);
+        verify(breadService).searchAutocompleteBreads(null, null, null);
         verifyNoInteractions(breadRecordService);
-        verify(breadService).createAutocompleteResponse(List.of(), Map.of());
+        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of());
     }
 
     @Test
