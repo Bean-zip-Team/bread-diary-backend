@@ -9,7 +9,6 @@ import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
-import com.bean.breaddiary.domain.user.dto.mapper.UserMapper;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
@@ -29,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -37,12 +35,12 @@ import static org.mockito.Mockito.when;
 class UserWithdrawalServiceTest {
 
     private UserService userService;
+    private UserWithdrawalService userWithdrawalService;
     private UserRepository userRepository;
     private BreadRepository breadRepository;
     private BreadRecordRepository breadRecordRepository;
     private UserSessionService userSessionService;
     private TossAuthClient tossAuthClient;
-    private UserMapper userMapper;
 
     @BeforeEach
     void setUp() {
@@ -51,16 +49,16 @@ class UserWithdrawalServiceTest {
         breadRecordRepository = mock(BreadRecordRepository.class);
         userSessionService = mock(UserSessionService.class);
         tossAuthClient = mock(TossAuthClient.class);
-        userMapper = mock(UserMapper.class);
-        userService = new UserService(
+        userService = mock(UserService.class);
+        userWithdrawalService = new UserWithdrawalService(
+                userService,
                 userRepository,
                 breadRepository,
                 breadRecordRepository,
                 userSessionService,
-                tossAuthClient,
-                userMapper
+                tossAuthClient
         );
-        ReflectionTestUtils.setField(userService, "tossWebhookSecret", "webhook-secret");
+        ReflectionTestUtils.setField(userWithdrawalService, "tossWebhookSecret", "webhook-secret");
     }
 
     @Test
@@ -70,7 +68,7 @@ class UserWithdrawalServiceTest {
         Bread breadToKeep = bread(userId, 1, "keep-bread");
         Bread breadToDelete = bread(userId, 2, "delete-bread");
 
-        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
         when(breadRepository.findAllByCreatedBy(userId)).thenReturn(List.of(breadToKeep, breadToDelete));
         when(breadRecordRepository.existsByBread(breadToKeep)).thenReturn(true);
         when(breadRecordRepository.existsByBread(breadToDelete)).thenReturn(false);
@@ -83,7 +81,7 @@ class UserWithdrawalServiceTest {
                         "profile"
                 ));
 
-        UserWithdrawalResponse response = userService.withdrawCurrentUser(userId);
+        UserWithdrawalResponse response = userWithdrawalService.withdrawCurrentUser(userId);
 
         assertTrue(response.isWithdrawn());
         assertNull(breadToKeep.getCreatedBy());
@@ -102,11 +100,11 @@ class UserWithdrawalServiceTest {
         User user = user(userId, "toss-user-key-without-refresh");
         user.updateTossRefreshToken(null);
 
-        when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> userService.withdrawCurrentUser(userId)
+                () -> userWithdrawalService.withdrawCurrentUser(userId)
         );
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
@@ -114,22 +112,25 @@ class UserWithdrawalServiceTest {
     }
 
     @Test
-    void handleTossWebhookUnlinkClearsSessionsOnly() {
+    void handleTossWebhookUnlinkHardDeletesUserData() {
         UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440010");
         User user = user(userId, "toss-user-key-unlink");
 
         when(userRepository.findByTossUserKey("toss-user-key-unlink"))
                 .thenReturn(Optional.of(user));
 
-        TossWebhookResponse response = userService.handleTossWebhook(
+        when(breadRepository.findAllByCreatedBy(userId)).thenReturn(List.of());
+
+        TossWebhookResponse response = userWithdrawalService.handleTossWebhook(
                 "webhook-secret",
-                new TossWebhookRequest("toss-user-key-unlink", TossWebhookEventType.UNLINK)
+                new TossWebhookRequest("toss-user-key-unlink", TossWebhookEventType.UNLINK.name())
         );
 
         assertTrue(response.isProcessed());
-        assertEquals(TossWebhookEventType.UNLINK, response.getEventType());
+        assertEquals(TossWebhookEventType.UNLINK.name(), response.getReferrer());
+        verify(breadRecordRepository).hardDeleteAllByUserId(userId);
         verify(userSessionService).deleteAllSessions(userId);
-        verify(userRepository, never()).delete(user);
+        verify(userRepository).delete(user);
         verifyNoInteractions(tossAuthClient);
     }
 
@@ -142,13 +143,13 @@ class UserWithdrawalServiceTest {
                 .thenReturn(Optional.of(user));
         when(breadRepository.findAllByCreatedBy(userId)).thenReturn(List.of());
 
-        TossWebhookResponse response = userService.handleTossWebhook(
+        TossWebhookResponse response = userWithdrawalService.handleTossWebhook(
                 "webhook-secret",
-                new TossWebhookRequest("toss-user-key-withdrawal", TossWebhookEventType.WITHDRAWAL_TOSS)
+                new TossWebhookRequest("toss-user-key-withdrawal", TossWebhookEventType.WITHDRAWAL_TOSS.name())
         );
 
         assertTrue(response.isProcessed());
-        assertEquals(TossWebhookEventType.WITHDRAWAL_TOSS, response.getEventType());
+        assertEquals(TossWebhookEventType.WITHDRAWAL_TOSS.name(), response.getReferrer());
         verify(breadRecordRepository).hardDeleteAllByUserId(userId);
         verify(userSessionService).deleteAllSessions(userId);
         verify(userRepository).delete(user);
@@ -159,9 +160,9 @@ class UserWithdrawalServiceTest {
     void handleTossWebhookRejectsInvalidSecret() {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> userService.handleTossWebhook(
+                () -> userWithdrawalService.handleTossWebhook(
                         "wrong-secret",
-                        new TossWebhookRequest("toss-user-key", TossWebhookEventType.UNLINK)
+                        new TossWebhookRequest("toss-user-key", TossWebhookEventType.UNLINK.name())
                 )
         );
 

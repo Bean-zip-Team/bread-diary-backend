@@ -35,10 +35,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class UserService {
 
-    private static final String WEBHOOK_REFERRER_UNLINK = "UNLINK";
-    private static final String WEBHOOK_REFERRER_WITHDRAWAL_TERMS = "WITHDRAWAL_TERMS";
-    private static final String WEBHOOK_REFERRER_WITHDRAWAL_TOSS = "WITHDRAWAL_TOSS";
-
     private final UserRepository userRepository;
     private final BreadRepository breadRepository;
     private final BreadRecordRepository breadRecordRepository;
@@ -157,21 +153,8 @@ public class UserService {
             }
 
             userId = user.get().getId();
-
-            if (WEBHOOK_REFERRER_UNLINK.equalsIgnoreCase(referrer)) {
-                user.get().clearTossTokens();
-                logWebhookSuccess("tossUnlinkWebhook", userId, referrer, true, startNanos);
-                return new TossWebhookResponse(true, referrer);
-            }
-
-            if (WEBHOOK_REFERRER_WITHDRAWAL_TERMS.equalsIgnoreCase(referrer)
-                    || WEBHOOK_REFERRER_WITHDRAWAL_TOSS.equalsIgnoreCase(referrer)) {
-                hardDeleteUserData(user.get());
-                logWebhookSuccess("tossWithdrawalWebhook", userId, referrer, true, startNanos);
-                return new TossWebhookResponse(true, referrer);
-            }
-
-            logWebhookSuccess("tossUnknownWebhook", userId, referrer, true, startNanos);
+            hardDeleteUserData(user.get());
+            logWebhookSuccess("tossWebhookHardDelete", userId, referrer, true, startNanos);
             return new TossWebhookResponse(true, referrer);
         } catch (ResponseStatusException exception) {
             logUserFailure(resolveWebhookAction(referrer), userId, referrer, exception, startNanos);
@@ -347,14 +330,7 @@ public class UserService {
     }
 
     private String resolveWebhookAction(String referrer) {
-        if (WEBHOOK_REFERRER_UNLINK.equalsIgnoreCase(normalizeText(referrer))) {
-            return "tossUnlinkWebhook";
-        }
-        if (WEBHOOK_REFERRER_WITHDRAWAL_TERMS.equalsIgnoreCase(normalizeText(referrer))
-                || WEBHOOK_REFERRER_WITHDRAWAL_TOSS.equalsIgnoreCase(normalizeText(referrer))) {
-            return "tossWithdrawalWebhook";
-        }
-        return "tossWithdrawalWebhook";
+        return "tossWebhookHardDelete";
     }
 
     private String normalizeText(String value) {
