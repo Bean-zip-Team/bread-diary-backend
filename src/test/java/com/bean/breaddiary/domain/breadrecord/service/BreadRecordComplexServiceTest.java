@@ -4,7 +4,9 @@ import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.bread.service.BreadService;
 import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
+import com.bean.breaddiary.domain.breadrecord.dto.request.CreateBreadRecordRequest;
 import com.bean.breaddiary.domain.breadrecord.dto.request.UpdateBreadRecordRequest;
+import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordCreateResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDeleteResponse;
 import com.bean.breaddiary.domain.breadrecord.dto.response.BreadRecordDetailResponse;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
@@ -47,6 +49,39 @@ class BreadRecordComplexServiceTest {
                 breadRecordService,
                 s3UploadService
         );
+    }
+
+    @Test
+    void createBreadRecordUsesUserScopedBreadLookup() {
+        UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
+        Bread bread = createBread(null);
+        CreateBreadRecordRequest request = new CreateBreadRecordRequest(
+                breadId,
+                new MockMultipartFile("photo", "photo.webp", "image/webp", "photo".getBytes()),
+                "르뺑블루",
+                LocalDate.of(2026, 3, 14),
+                5,
+                "맛있어요."
+        );
+        BreadRecord savedRecord = createBreadRecord(bread);
+        BreadRecordCreateResponse expected = new BreadRecordCreateResponse();
+
+        when(breadService.getBreadById(breadId, USER_ID)).thenReturn(bread);
+        when(breadRecordService.existsActiveRecord(USER_ID, bread)).thenReturn(false);
+        when(s3UploadService.uploadBreadPhoto(USER_ID, request.getPhoto()))
+                .thenReturn("https://cdn.bread-diary.app/bread-photos/new.webp");
+        when(breadRecordService.createBreadRecord(
+                request,
+                USER_ID,
+                bread,
+                "https://cdn.bread-diary.app/bread-photos/new.webp"
+        )).thenReturn(savedRecord);
+        when(breadRecordService.createResponse(savedRecord, true)).thenReturn(expected);
+
+        BreadRecordCreateResponse actual = breadRecordComplexService.createBreadRecord(USER_ID, request);
+
+        assertSame(expected, actual);
+        verify(breadService).getBreadById(breadId, USER_ID);
     }
 
     @Test

@@ -32,7 +32,7 @@ public class BreadRecordComplexService {
     public BreadRecordCreateResponse createBreadRecord(UUID userId, CreateBreadRecordRequest request) {
         breadRecordService.validateEatenDate(request.getEatenDate());
 
-        Bread bread = breadService.getBreadById(request.getBreadId());
+        Bread bread = breadService.getBreadById(request.getBreadId(), userId);
         Boolean isFirstRecord = !breadRecordService.existsActiveRecord(userId, bread);
 
         String photoUrl = s3UploadService.uploadBreadPhoto(userId, request.getPhoto());

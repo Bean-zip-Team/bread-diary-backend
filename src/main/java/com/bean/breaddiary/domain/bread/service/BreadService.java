@@ -24,6 +24,7 @@ import lombok.Getter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -39,30 +40,34 @@ public class BreadService {
     private final BreadRepository breadRepository;
     private final BreadMapper breadMapper;
 
-    public Bread getBreadById(UUID breadId) {
-        return breadRepository.findById(breadId)
+    public Bread getBreadById(UUID breadId, UUID userId) {
+        Bread bread = breadRepository.findById(breadId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "해당 빵을 카탈로그에서 찾을 수 없습니다."
                 ));
+
+        validateBreadVisibility(bread, userId);
+        return bread;
     }
 
     public boolean existsByName(String name) {
         return breadRepository.existsByName(name);
     }
 
-    public AutocompleteSlice searchAutocompleteBreads(String query, String cursor, Integer limit) {
+    public AutocompleteSlice searchAutocompleteBreads(String query, String cursor, Integer limit, UUID userId) {
         int normalizedLimit = normalizeAutocompleteLimit(limit);
         Pageable pageable = PageRequest.of(0, normalizedLimit + 1);
 
         if (query == null || query.isBlank()) {
-            return searchPopularAutocompleteBreads(cursor, normalizedLimit, pageable);
+            return searchPopularAutocompleteBreads(cursor, normalizedLimit, pageable, userId);
         }
 
         Integer cursorStickerNumber = parseStickerNumberCursor(cursor);
         List<Bread> breads = breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
                 query.trim(),
                 cursorStickerNumber,
+                userId,
                 pageable
         );
 
@@ -85,10 +90,11 @@ public class BreadService {
         return breadRepository.findAllByCreatedByIsNullOrderByStickerNumberAsc();
     }
 
-    public List<Bread> findCatalogCandidates(String search, BreadType breadType) {
+    public List<Bread> findCatalogCandidates(String search, BreadType breadType, UUID userId) {
         return breadRepository.findCatalogCandidates(
                 normalizeSearch(search),
-                breadType
+                breadType,
+                userId
         );
     }
 
@@ -148,6 +154,15 @@ public class BreadService {
                 .orElse(0) + 1;
     }
 
+    private void validateBreadVisibility(Bread bread, UUID userId) {
+        if (bread.isUserCreated() && !Objects.equals(bread.getCreatedBy(), userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "해당 빵을 카탈로그에서 찾을 수 없습니다."
+            );
+        }
+    }
+
     private void validateBreadNameNotDuplicated(String name) {
         if (existsByName(name)) {
             throw new ResponseStatusException(
@@ -168,12 +183,14 @@ public class BreadService {
     private AutocompleteSlice searchPopularAutocompleteBreads(
             String cursor,
             int normalizedLimit,
-            Pageable pageable
+            Pageable pageable,
+            UUID userId
     ) {
         PopularAutocompleteCursor popularCursor = parsePopularAutocompleteCursor(cursor);
         List<Bread> breads = breadRepository.findPopularAutocompleteAfterCursor(
                 popularCursor.getRecordCount(),
                 popularCursor.getStickerNumber(),
+                userId,
                 pageable
         );
 

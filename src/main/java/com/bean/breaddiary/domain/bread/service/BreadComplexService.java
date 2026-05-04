@@ -43,7 +43,7 @@ public class BreadComplexService {
     private final BreadRecordService breadRecordService;
 
     public BreadAutocompleteResponse autocompleteBreads(String query, String cursor, Integer limit, UUID userId) {
-        BreadService.AutocompleteSlice autocompleteSlice = breadService.searchAutocompleteBreads(query, cursor, limit);
+        BreadService.AutocompleteSlice autocompleteSlice = breadService.searchAutocompleteBreads(query, cursor, limit, userId);
         List<Bread> breads = autocompleteSlice.getItems();
 
         Map<UUID, Long> eatCounts = resolveEatCounts(userId, breads);
@@ -65,7 +65,7 @@ public class BreadComplexService {
         int normalizedLimit = normalizeLimit(limit);
         BreadType breadType = resolveBreadType(breadTypeCode);
 
-        List<Bread> candidates = breadService.findCatalogCandidates(search, breadType);
+        List<Bread> candidates = breadService.findCatalogCandidates(search, breadType, userId);
         Map<UUID, BreadRecordCatalogStats> statsMap = resolveCatalogStats(userId, candidates);
 
         List<Bread> filteredBreads = applyFilter(candidates, statsMap, userId, normalizedFilter);
@@ -88,7 +88,7 @@ public class BreadComplexService {
     }
 
     public BreadProfileResponse getBreadProfile(UUID breadId, UUID userId) {
-        Bread bread = breadService.getBreadById(breadId);
+        Bread bread = breadService.getBreadById(breadId, userId);
         List<BreadRecord> records = breadRecordService.findActiveRecordsByUserAndBread(
                 userId,
                 bread

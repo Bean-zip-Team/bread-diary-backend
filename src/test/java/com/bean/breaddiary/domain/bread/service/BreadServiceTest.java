@@ -7,6 +7,8 @@ import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.PASTRY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -51,13 +54,16 @@ class BreadServiceTest {
                 PASTRY
         );
 
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
         when(breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
                 "크루",
                 3,
+                userId,
                 PageRequest.of(0, 2)
         )).thenReturn(List.of(firstBread, secondBread));
 
-        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("크루", "3", 1);
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("크루", "3", 1, userId);
 
         assertEquals(List.of(firstBread), actual.getItems());
         assertEquals("4", actual.getNextCursor());
@@ -79,14 +85,17 @@ class BreadServiceTest {
                 BAGEL
         );
 
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
         when(breadRepository.findPopularAutocompleteAfterCursor(
                 12L,
                 3,
+                userId,
                 PageRequest.of(0, 2)
         )).thenReturn(List.of(firstBread, secondBread));
         when(breadRepository.countActiveRecordsByBreadId(firstBread.getId())).thenReturn(11L);
 
-        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("  ", "12_3", 1);
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("  ", "12_3", 1, userId);
 
         assertEquals(List.of(firstBread), actual.getItems());
         assertEquals("11_4", actual.getNextCursor());
@@ -106,15 +115,50 @@ class BreadServiceTest {
         when(breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
                 "소금",
                 null,
+                null,
                 PageRequest.of(0, 21)
         )).thenReturn(List.of(bread));
 
-        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("소금", null, null);
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("소금", null, null, null);
 
         assertEquals(List.of(bread), actual.getItems());
         assertNull(actual.getNextCursor());
         assertFalse(actual.getHasMore());
         verifyNoMoreInteractions(breadMapper);
+    }
+
+    @Test
+    void getBreadByIdAllowsSystemBreadForAnonymousUser() {
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        Bread bread = createBread(breadId, 4, "소금빵", PASTRY);
+
+        when(breadRepository.findById(breadId)).thenReturn(java.util.Optional.of(bread));
+
+        Bread actual = breadService.getBreadById(breadId, null);
+
+        assertEquals(bread, actual);
+    }
+
+    @Test
+    void getBreadByIdRejectsOtherUsersUserCreatedBread() {
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(4)
+                .name("소금빵")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/salt.webp")
+                .createdBy(UUID.fromString("00000000-0000-0000-0000-000000000009"))
+                .build();
+
+        when(breadRepository.findById(breadId)).thenReturn(java.util.Optional.of(bread));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> breadService.getBreadById(breadId, UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
     @Test
