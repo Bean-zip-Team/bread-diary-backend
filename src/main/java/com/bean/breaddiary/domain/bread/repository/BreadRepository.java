@@ -32,11 +32,13 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
             from Bread b
             where lower(b.name) like lower(concat('%', :name, '%'))
               and (:cursorStickerNumber is null or b.stickerNumber > :cursorStickerNumber)
+              and (b.createdBy is null or (:userId is not null and b.createdBy = :userId))
             order by b.stickerNumber asc
             """)
     List<Bread> findAutocompleteByNameContainingAfterStickerNumber(
             @Param("name") String name,
             @Param("cursorStickerNumber") Integer cursorStickerNumber,
+            @Param("userId") UUID userId,
             Pageable pageable
     );
 
@@ -57,6 +59,7 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
             left join BreadRecord br
                 on br.bread = b
                 and br.deletedAt is null
+            where (b.createdBy is null or (:userId is not null and b.createdBy = :userId))
             group by b
             having (:recordCountCursor is null
                     or count(br) < :recordCountCursor
@@ -66,6 +69,7 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
     List<Bread> findPopularAutocompleteAfterCursor(
             @Param("recordCountCursor") Long recordCountCursor,
             @Param("stickerNumberCursor") Integer stickerNumberCursor,
+            @Param("userId") UUID userId,
             Pageable pageable
     );
 
@@ -82,10 +86,12 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
             from Bread b
             where (:search is null or lower(b.name) like lower(concat('%', :search, '%')))
               and (:breadType is null or b.breadType = :breadType)
+              and (b.createdBy is null or (:userId is not null and b.createdBy = :userId))
             order by b.stickerNumber asc
             """)
     List<Bread> findCatalogCandidates(
             @Param("search") String search,
-            @Param("breadType") BreadType breadType
+            @Param("breadType") BreadType breadType,
+            @Param("userId") UUID userId
     );
 }

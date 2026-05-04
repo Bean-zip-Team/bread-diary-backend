@@ -55,7 +55,7 @@ class BreadComplexServiceTest {
         BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(bread), "6", true);
         BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), "6", true);
 
-        when(breadService.searchAutocompleteBreads("크루", "3", 10)).thenReturn(autocompleteSlice);
+        when(breadService.searchAutocompleteBreads("크루", "3", 10, userId)).thenReturn(autocompleteSlice);
         when(breadRecordService.countActiveRecordsByBreadIds(userId, List.of(breadId)))
                 .thenReturn(Map.of(breadId, 5L));
         when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L)))
@@ -64,7 +64,7 @@ class BreadComplexServiceTest {
         BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads("크루", "3", 10, userId);
 
         assertSame(expected, actual);
-        verify(breadService).searchAutocompleteBreads("크루", "3", 10);
+        verify(breadService).searchAutocompleteBreads("크루", "3", 10, userId);
         verify(breadRecordService).countActiveRecordsByBreadIds(userId, List.of(breadId));
         verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L));
     }
@@ -74,13 +74,13 @@ class BreadComplexServiceTest {
         BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(), null, false);
         BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), null, false);
 
-        when(breadService.searchAutocompleteBreads(null, null, null)).thenReturn(autocompleteSlice);
+        when(breadService.searchAutocompleteBreads(null, null, null, null)).thenReturn(autocompleteSlice);
         when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of())).thenReturn(expected);
 
         BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads(null, null, null, null);
 
         assertSame(expected, actual);
-        verify(breadService).searchAutocompleteBreads(null, null, null);
+        verify(breadService).searchAutocompleteBreads(null, null, null, null);
         verifyNoInteractions(breadRecordService);
         verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of());
     }
@@ -101,7 +101,7 @@ class BreadComplexServiceTest {
         );
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "1", true, 2L);
 
-        when(breadService.findCatalogCandidates(null, null)).thenReturn(List.of(firstBread, secondBread));
+        when(breadService.findCatalogCandidates(null, null, null)).thenReturn(List.of(firstBread, secondBread));
         when(breadService.createCatalogListResponse(
                 List.of(firstBread),
                 Map.of(),
@@ -121,7 +121,7 @@ class BreadComplexServiceTest {
         );
 
         assertSame(expected, actual);
-        verify(breadService).findCatalogCandidates(null, null);
+        verify(breadService).findCatalogCandidates(null, null, null);
         verifyNoInteractions(breadRecordService);
         verify(breadService).createCatalogListResponse(
                 List.of(firstBread),
@@ -159,7 +159,7 @@ class BreadComplexServiceTest {
         );
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 2L);
 
-        when(breadService.findCatalogCandidates(null, null)).thenReturn(List.of(uncollectedBread, collectedBread));
+        when(breadService.findCatalogCandidates(null, null, userId)).thenReturn(List.of(uncollectedBread, collectedBread));
         when(breadRecordService.findCatalogStatsByBreadIds(
                 userId,
                 List.of(uncollectedBread.getId(), collectedBread.getId())
@@ -221,7 +221,7 @@ class BreadComplexServiceTest {
         );
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "2_" + firstCollectedBread.getId(), true, 3L);
 
-        when(breadService.findCatalogCandidates(null, null))
+        when(breadService.findCatalogCandidates(null, null, userId))
                 .thenReturn(List.of(uncollectedBread, firstCollectedBread, secondCollectedBread));
         when(breadRecordService.findCatalogStatsByBreadIds(
                 userId,
@@ -281,7 +281,7 @@ class BreadComplexServiceTest {
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 1L);
 
         when(breadTypeService.getBreadTypeByCode("PASTRY")).thenReturn(PASTRY);
-        when(breadService.findCatalogCandidates("크루", PASTRY))
+        when(breadService.findCatalogCandidates("크루", PASTRY, userId))
                 .thenReturn(List.of(collectedBread, uncollectedBread));
         when(breadRecordService.findCatalogStatsByBreadIds(
                 userId,
@@ -307,7 +307,7 @@ class BreadComplexServiceTest {
 
         assertSame(expected, actual);
         verify(breadTypeService).getBreadTypeByCode("PASTRY");
-        verify(breadService).findCatalogCandidates("크루", PASTRY);
+        verify(breadService).findCatalogCandidates("크루", PASTRY, userId);
         verify(breadRecordService).findCatalogStatsByBreadIds(
                 userId,
                 List.of(collectedBread.getId(), uncollectedBread.getId())
@@ -319,6 +319,22 @@ class BreadComplexServiceTest {
                 false,
                 1L
         );
+    }
+
+    @Test
+    void getBreadProfileRejectsAnonymousAccessToUserCreatedBread() {
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+
+        when(breadService.getBreadById(breadId, null)).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
+
+        org.springframework.web.server.ResponseStatusException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> breadComplexService.getBreadProfile(breadId, null)
+        );
+
+        org.junit.jupiter.api.Assertions.assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(breadService).getBreadById(breadId, null);
+        verifyNoInteractions(breadRecordService);
     }
 
     @Test
@@ -346,7 +362,7 @@ class BreadComplexServiceTest {
         List<BreadProfileRecordResponse> recordResponses = List.of(new BreadProfileRecordResponse());
         BreadProfileResponse expected = new BreadProfileResponse();
 
-        when(breadService.getBreadById(breadId)).thenReturn(bread);
+        when(breadService.getBreadById(breadId, userId)).thenReturn(bread);
         when(breadRecordService.findActiveRecordsByUserAndBread(userId, bread))
                 .thenReturn(List.of(record));
         when(breadRecordService.createProfileStats(List.of(record))).thenReturn(stats);
@@ -356,7 +372,7 @@ class BreadComplexServiceTest {
         BreadProfileResponse actual = breadComplexService.getBreadProfile(breadId, userId);
 
         assertSame(expected, actual);
-        verify(breadService).getBreadById(breadId);
+        verify(breadService).getBreadById(breadId, userId);
         verify(breadRecordService).findActiveRecordsByUserAndBread(userId, bread);
         verify(breadRecordService).createProfileStats(List.of(record));
         verify(breadRecordService).createProfileRecordResponses(List.of(record));
