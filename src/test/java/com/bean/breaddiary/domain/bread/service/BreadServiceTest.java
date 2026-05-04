@@ -2,6 +2,7 @@ package com.bean.breaddiary.domain.bread.service;
 
 import com.bean.breaddiary.domain.bread.dto.mapper.BreadMapper;
 import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -113,6 +115,39 @@ class BreadServiceTest {
         assertNull(actual.getNextCursor());
         assertFalse(actual.getHasMore());
         verifyNoMoreInteractions(breadMapper);
+    }
+
+    @Test
+    void createUserBreadUsesOriginalDefaultImageUrl() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        CreateNewBreadRecordRequest request = new CreateNewBreadRecordRequest();
+        request.setName("말차 크로플");
+
+        Bread savedBread = Bread.builder()
+                .id(UUID.fromString("20000000-0000-0000-0000-000000000001"))
+                .stickerNumber(9)
+                .name("말차 크로플")
+                .breadType(PASTRY)
+                .imageUrl("https://du4zizlgiw14n.cloudfront.net/images/014_%EB%85%B9%EC%B0%A8%20%EC%8B%9D%EB%B9%B5.png")
+                .createdBy(userId)
+                .build();
+
+        when(breadRepository.existsByName("말차 크로플")).thenReturn(false);
+        when(breadRepository.findTopByOrderByStickerNumberDesc()).thenReturn(java.util.Optional.of(
+                Bread.builder().stickerNumber(8).build()
+        ));
+        when(breadMapper.mapToBread(
+                eq(request),
+                eq(PASTRY),
+                eq(9),
+                eq("https://du4zizlgiw14n.cloudfront.net/images/014_%EB%85%B9%EC%B0%A8%20%EC%8B%9D%EB%B9%B5.png"),
+                eq(userId)
+        )).thenReturn(savedBread);
+        when(breadRepository.save(savedBread)).thenReturn(savedBread);
+
+        Bread actual = breadService.createUserBread(request, PASTRY, userId);
+
+        assertEquals(savedBread, actual);
     }
 
     private Bread createBread(UUID id, int stickerNumber, String name, com.bean.breaddiary.domain.breadtype.entity.BreadType breadType) {
