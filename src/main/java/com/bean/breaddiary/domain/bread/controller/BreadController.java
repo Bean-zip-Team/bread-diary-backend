@@ -34,7 +34,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 도감 목록 조회",
-            description = "전체 빵 카탈로그를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 수집 상태를 포함하고, 없으면 비로그인 카탈로그 정보만 반환합니다."
+            description = "전체 빵 카탈로그를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 수집 상태를 포함하고, 없으면 비로그인 카탈로그 정보만 반환합니다. 온보딩에서 선택한 빵은 실제 기록이 없어도 수집된 빵처럼 표시되며 원본 이미지를 반환할 수 있습니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -76,7 +76,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 프로필 조회",
-            description = "카탈로그 빵의 마스터 정보를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 기록 통계와 기록 목록을 포함합니다."
+            description = "카탈로그 빵의 마스터 정보를 조회합니다. Authorization 헤더가 있으면 현재 사용자 기준 기록 통계와 기록 목록을 포함합니다. 온보딩에서 선택한 빵은 실제 기록이 없어도 원본 이미지를 반환할 수 있습니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -104,7 +104,7 @@ public class BreadController {
 
     @Operation(
             summary = "빵 카탈로그 자동완성",
-            description = "빵 기록 시 사용할 빵 이름 자동완성 목록을 조회합니다. q가 없으면 인기순 기본 목록을 반환하며, Authorization 헤더가 있으면 현재 사용자 기준 기록 수를 포함합니다."
+            description = "빵 기록 시 사용할 빵 이름 자동완성 목록을 조회합니다. q가 없으면 인기순 기본 목록을 반환하며, Authorization 헤더가 있으면 현재 사용자 기준 실제 기록 수를 포함합니다. 온보딩에서 선택한 빵은 실제 기록이 없어도 원본 이미지를 반환할 수 있습니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
