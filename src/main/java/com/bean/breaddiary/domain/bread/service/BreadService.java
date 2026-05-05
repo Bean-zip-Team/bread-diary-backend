@@ -25,6 +25,7 @@ import lombok.Getter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -76,11 +77,13 @@ public class BreadService {
 
     public BreadAutocompleteResponse createAutocompleteResponse(
             AutocompleteSlice autocompleteSlice,
-            Map<UUID, Long> eatCounts
+            Map<UUID, Long> eatCounts,
+            Set<UUID> onboardingSelectedBreadIds
     ) {
         return breadMapper.mapToAutocompleteResponse(
                 autocompleteSlice.getItems(),
                 eatCounts,
+                onboardingSelectedBreadIds,
                 autocompleteSlice.getNextCursor(),
                 autocompleteSlice.getHasMore()
         );
@@ -88,6 +91,14 @@ public class BreadService {
 
     public List<Bread> findAllSystemCatalogBreads() {
         return breadRepository.findAllByCreatedByIsNullOrderByStickerNumberAsc();
+    }
+
+    public List<Bread> findAllSystemCatalogBreadsByIds(List<UUID> breadIds) {
+        if (breadIds == null || breadIds.isEmpty()) {
+            return List.of();
+        }
+
+        return breadRepository.findAllSystemCatalogBreadsByIds(breadIds);
     }
 
     public List<Bread> findCatalogCandidates(String search, BreadType breadType, UUID userId) {
@@ -101,6 +112,7 @@ public class BreadService {
     public BreadCatalogListResponse createCatalogListResponse(
             List<Bread> breads,
             Map<UUID, BreadRecordCatalogStats> statsMap,
+            Set<UUID> onboardingSelectedBreadIds,
             String nextCursor,
             boolean hasMore,
             long totalCount
@@ -108,6 +120,7 @@ public class BreadService {
         return breadMapper.mapToCatalogListResponse(
                 breads,
                 statsMap,
+                onboardingSelectedBreadIds,
                 nextCursor,
                 hasMore,
                 totalCount
@@ -117,12 +130,14 @@ public class BreadService {
     public BreadProfileResponse createProfileResponse(
             Bread bread,
             BreadProfileStatsResponse stats,
-            List<BreadProfileRecordResponse> records
+            List<BreadProfileRecordResponse> records,
+            boolean onboardingSelected
     ) {
         return breadMapper.mapToProfileResponse(
                 bread,
                 stats,
-                records
+                records,
+                onboardingSelected
         );
     }
 

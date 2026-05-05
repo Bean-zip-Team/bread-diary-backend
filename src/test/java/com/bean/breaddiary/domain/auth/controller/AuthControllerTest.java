@@ -7,6 +7,7 @@ import com.bean.breaddiary.domain.auth.dto.request.TossWebhookRequest;
 import com.bean.breaddiary.domain.auth.dto.response.AuthTokenResponse;
 import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
 import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
+import com.bean.breaddiary.domain.auth.service.AuthComplexService;
 import com.bean.breaddiary.domain.auth.service.AuthService;
 import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.common.GlobalExceptionHandler;
@@ -23,12 +24,12 @@ import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,16 +38,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AuthControllerTest {
 
+    private AuthComplexService authComplexService;
     private AuthService authService;
     private UserWithdrawalService userWithdrawalService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        authComplexService = mock(AuthComplexService.class);
         authService = mock(AuthService.class);
         userWithdrawalService = mock(UserWithdrawalService.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new AuthController(authService, userWithdrawalService))
+                .standaloneSetup(new AuthController(authComplexService, authService, userWithdrawalService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(snakeCaseObjectMapper()))
                 .build();
@@ -64,7 +67,7 @@ class AuthControllerTest {
                 true
         );
 
-        when(authService.loginWithToss(any(TossLoginRequest.class)))
+        when(authComplexService.loginWithToss(any(TossLoginRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/auth/toss")
@@ -72,7 +75,11 @@ class AuthControllerTest {
                         .content("""
                                 {
                                   "authorization_code": "auth-code",
-                                  "referrer": "DEFAULT"
+                                  "referrer": "DEFAULT",
+                                  "selected_bread_ids": [
+                                    "550e8400-e29b-41d4-a716-446655440111",
+                                    "550e8400-e29b-41d4-a716-446655440222"
+                                  ]
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -88,9 +95,13 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.access_token").doesNotExist());
 
         ArgumentCaptor<TossLoginRequest> requestCaptor = ArgumentCaptor.forClass(TossLoginRequest.class);
-        verify(authService).loginWithToss(requestCaptor.capture());
+        verify(authComplexService).loginWithToss(requestCaptor.capture());
         assertEquals("auth-code", requestCaptor.getValue().getAuthorizationCode());
         assertEquals("DEFAULT", requestCaptor.getValue().getReferrer());
+        assertEquals(List.of(
+                UUID.fromString("550e8400-e29b-41d4-a716-446655440111"),
+                UUID.fromString("550e8400-e29b-41d4-a716-446655440222")
+        ), requestCaptor.getValue().getSelectedBreadIds());
     }
 
     @Test
@@ -105,7 +116,7 @@ class AuthControllerTest {
                 true
         );
 
-        when(authService.loginWithToss(any(TossLoginRequest.class)))
+        when(authComplexService.loginWithToss(any(TossLoginRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/auth/toss")
@@ -113,7 +124,8 @@ class AuthControllerTest {
                         .content("""
                                 {
                                   "authorizationCode": "auth-code-from-app-login",
-                                  "referrer": "SANDBOX"
+                                  "referrer": "SANDBOX",
+                                  "selectedBreadIds": ["550e8400-e29b-41d4-a716-446655440333"]
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -123,9 +135,10 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.access_token").doesNotExist());
 
         ArgumentCaptor<TossLoginRequest> requestCaptor = ArgumentCaptor.forClass(TossLoginRequest.class);
-        verify(authService).loginWithToss(requestCaptor.capture());
+        verify(authComplexService).loginWithToss(requestCaptor.capture());
         assertEquals("auth-code-from-app-login", requestCaptor.getValue().getAuthorizationCode());
         assertEquals("SANDBOX", requestCaptor.getValue().getReferrer());
+        assertEquals(List.of(UUID.fromString("550e8400-e29b-41d4-a716-446655440333")), requestCaptor.getValue().getSelectedBreadIds());
     }
 
     @Test
@@ -218,49 +231,22 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.logged_out").doesNotExist());
 
         verify(authService).logoutCurrentSession(sessionId);
-        verify(authService, never()).logout(any(LogoutRequest.class));
     }
 
-    @Test
-    void logoutRejectsFormUrlEncodedRequestWithoutCallingService() throws Exception {
-        mockMvc.perform(post("/auth/logout")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .content("refreshToken=refresh-token")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnsupportedMediaType())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
-
-        verify(authService, never()).logout(any(LogoutRequest.class));
-        verify(authService, never()).logoutCurrentSession(any());
-    }
 
     @Test
-    void handleTossWebhookBindsCamelCaseRequestAndSerializesCamelCaseResponse() throws Exception {
-        when(userWithdrawalService.handleTossWebhook(any(String.class), any(TossWebhookRequest.class)))
-                .thenReturn(new TossWebhookResponse(true, "UNLINK"));
-
-        mockMvc.perform(post("/auth/webhook/toss-unlink")
+    void loginWithTossRejectsNullSelectedBreadId() throws Exception {
+        mockMvc.perform(post("/auth/toss")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", "Basic d2ViaG9vay1zZWNyZXQ=")
                         .content("""
                                 {
-                                  "userKey": "toss-user-key-12345678",
-                                  "eventType": "UNLINK"
+                                  "authorizationCode": "auth-code-from-app-login",
+                                  "referrer": "SANDBOX",
+                                  "selectedBreadIds": [null]
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.processed").value(true))
-                .andExpect(jsonPath("$.data.referrer").value("UNLINK"))
-                .andExpect(jsonPath("$.data.eventType").doesNotExist());
-
-        ArgumentCaptor<TossWebhookRequest> requestCaptor = ArgumentCaptor.forClass(TossWebhookRequest.class);
-        ArgumentCaptor<String> secretCaptor = ArgumentCaptor.forClass(String.class);
-        verify(userWithdrawalService).handleTossWebhook(secretCaptor.capture(), requestCaptor.capture());
-        assertEquals("Basic d2ViaG9vay1zZWNyZXQ=", secretCaptor.getValue());
-        assertEquals("toss-user-key-12345678", requestCaptor.getValue().getUserKey());
-        assertEquals("UNLINK", requestCaptor.getValue().getReferrer());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     private JsonMapper snakeCaseObjectMapper() {

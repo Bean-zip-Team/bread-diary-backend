@@ -7,6 +7,7 @@ import com.bean.breaddiary.domain.auth.dto.request.TossWebhookRequest;
 import com.bean.breaddiary.domain.auth.dto.response.AuthTokenResponse;
 import com.bean.breaddiary.domain.auth.dto.response.LogoutResponse;
 import com.bean.breaddiary.domain.auth.dto.response.TossWebhookResponse;
+import com.bean.breaddiary.domain.auth.service.AuthComplexService;
 import com.bean.breaddiary.domain.auth.service.AuthService;
 import com.bean.breaddiary.domain.user.service.UserWithdrawalService;
 import com.bean.breaddiary.global.common.ApiResponse;
@@ -38,6 +39,7 @@ public class AuthController {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
 
+    private final AuthComplexService authComplexService;
     private final AuthService authService;
     private final UserWithdrawalService userWithdrawalService;
 
@@ -60,7 +62,7 @@ public class AuthController {
             @Valid @RequestBody TossLoginRequest request
     ) {
         return ResponseEntity.ok(
-                ApiResponse.success(authService.loginWithToss(request))
+                ApiResponse.success(authComplexService.loginWithToss(request))
         );
     }
 

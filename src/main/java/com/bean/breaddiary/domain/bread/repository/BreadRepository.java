@@ -23,6 +23,15 @@ public interface BreadRepository extends JpaRepository<Bread, UUID> {
 
     List<Bread> findAllByCreatedByIsNullOrderByStickerNumberAsc();
 
+    @Query("""
+            select b
+            from Bread b
+            where b.createdBy is null
+              and b.id in :breadIds
+            order by b.stickerNumber asc
+            """)
+    List<Bread> findAllSystemCatalogBreadsByIds(@Param("breadIds") List<UUID> breadIds);
+
     boolean existsByName(String name);
 
     List<Bread> findByNameContainingIgnoreCaseOrderByStickerNumberAsc(String name, Pageable pageable);
