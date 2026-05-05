@@ -6,7 +6,6 @@ import com.bean.breaddiary.domain.bread.dto.response.BreadCatalogItemResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileResponse;
 import com.bean.breaddiary.domain.bread.dto.response.BreadProfileStatsResponse;
 import com.bean.breaddiary.domain.bread.entity.Bread;
-import com.bean.breaddiary.domain.breadtype.entity.BreadType;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
 import org.junit.jupiter.api.Test;
@@ -16,9 +15,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.PASTRY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BreadMapperTest {
@@ -64,7 +64,7 @@ class BreadMapperTest {
                 LocalDate.of(2026, 4, 18)
         );
 
-        BreadCatalogItemResponse response = breadMapper.mapToCatalogItem(bread, stats);
+        BreadCatalogItemResponse response = breadMapper.mapToCatalogItem(bread, stats, false);
 
         assertEquals("쫀득쫀득 두쫀쿠", response.getName());
         assertEquals("https://cdn.bread-diary.app/catalog/default_user_bread.webp", response.getImageUrl());
@@ -85,10 +85,28 @@ class BreadMapperTest {
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .build();
 
-        BreadCatalogItemResponse response = breadMapper.mapToCatalogItem(bread, null);
+        BreadCatalogItemResponse response = breadMapper.mapToCatalogItem(bread, null, false);
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant_placeholder.webp", response.getImageUrl());
         assertEquals(false, response.getIsCollected());
+        assertEquals(0L, response.getEatCount());
+    }
+
+    @Test
+    void mapToCatalogItemKeepsOriginalImageForOnboardingSelectedBreadWithoutRecords() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(1)
+                .name("쫀득쫀득 두쫀쿠")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadCatalogItemResponse response = breadMapper.mapToCatalogItem(bread, null, true);
+
+        assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());
+        assertEquals(true, response.getIsCollected());
         assertEquals(0L, response.getEatCount());
     }
 
@@ -103,7 +121,7 @@ class BreadMapperTest {
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .build();
 
-        BreadAutocompleteItemResponse response = breadMapper.mapToAutocompleteItem(bread, 2L);
+        BreadAutocompleteItemResponse response = breadMapper.mapToAutocompleteItem(bread, 2L, false);
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());
         assertEquals(2L, response.getEatCount());
@@ -120,9 +138,26 @@ class BreadMapperTest {
                 .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
                 .build();
 
-        BreadAutocompleteItemResponse response = breadMapper.mapToAutocompleteItem(bread, 0L);
+        BreadAutocompleteItemResponse response = breadMapper.mapToAutocompleteItem(bread, 0L, false);
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant_placeholder.webp", response.getImageUrl());
+        assertEquals(0L, response.getEatCount());
+    }
+
+    @Test
+    void mapToAutocompleteItemKeepsOriginalImageForOnboardingSelectedBreadWithoutRecords() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(1)
+                .name("쫀득쫀득 두쫀쿠")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadAutocompleteItemResponse response = breadMapper.mapToAutocompleteItem(bread, 0L, true);
+
+        assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());
         assertEquals(0L, response.getEatCount());
     }
 
@@ -140,6 +175,7 @@ class BreadMapperTest {
         BreadAutocompleteResponse response = breadMapper.mapToAutocompleteResponse(
                 java.util.List.of(bread),
                 Map.of(breadId, 5L),
+                Set.of(),
                 "6",
                 true
         );
@@ -163,7 +199,8 @@ class BreadMapperTest {
         BreadProfileResponse response = breadMapper.mapToProfileResponse(
                 bread,
                 new BreadProfileStatsResponse(0L, null, null),
-                List.of()
+                List.of(),
+                false
         );
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant_placeholder.webp", response.getImageUrl());
@@ -183,7 +220,29 @@ class BreadMapperTest {
         BreadProfileResponse response = breadMapper.mapToProfileResponse(
                 bread,
                 new BreadProfileStatsResponse(1L, 4.5, LocalDateTime.of(2026, 4, 1, 9, 0)),
-                List.of()
+                List.of(),
+                false
+        );
+
+        assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());
+    }
+
+    @Test
+    void mapToProfileResponseKeepsOriginalImageForOnboardingSelectedBreadWithoutRecords() {
+        UUID breadId = UUID.fromString("b78af3bc-d52b-4aa9-9996-182003d018ba");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(1)
+                .name("크루아상")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
+                .build();
+
+        BreadProfileResponse response = breadMapper.mapToProfileResponse(
+                bread,
+                new BreadProfileStatsResponse(0L, null, null),
+                List.of(),
+                true
         );
 
         assertEquals("https://cdn.bread-diary.app/breads/croissant.webp", response.getImageUrl());

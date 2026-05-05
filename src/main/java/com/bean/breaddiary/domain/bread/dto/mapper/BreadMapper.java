@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
@@ -42,20 +43,22 @@ public interface BreadMapper {
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
-    @Mapping(target = "imageUrl", expression = "java(resolveAutocompleteImageUrl(bread.getImageUrl(), eatCount))")
+    @Mapping(target = "imageUrl", expression = "java(resolveAutocompleteImageUrl(bread.getImageUrl(), eatCount, onboardingSelected))")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(eatCount))")
-    BreadAutocompleteItemResponse mapToAutocompleteItem(Bread bread, Long eatCount);
+    BreadAutocompleteItemResponse mapToAutocompleteItem(Bread bread, Long eatCount, boolean onboardingSelected);
 
     default BreadAutocompleteResponse mapToAutocompleteResponse(
             List<Bread> breads,
             Map<UUID, Long> eatCounts,
+            Set<UUID> onboardingSelectedBreadIds,
             String nextCursor,
             boolean hasMore
     ) {
         List<BreadAutocompleteItemResponse> items = breads.stream()
                 .map(bread -> mapToAutocompleteItem(
                         bread,
-                        eatCounts.get(bread.getId())
+                        eatCounts.get(bread.getId()),
+                        onboardingSelectedBreadIds != null && onboardingSelectedBreadIds.contains(bread.getId())
                 ))
                 .toList();
 
@@ -66,8 +69,8 @@ public interface BreadMapper {
         return eatCount == null ? 0L : eatCount;
     }
 
-    default String resolveAutocompleteImageUrl(String imageUrl, Long eatCount) {
-        if (resolveEatCount(eatCount) > 0) {
+    default String resolveAutocompleteImageUrl(String imageUrl, Long eatCount, boolean onboardingSelected) {
+        if (resolveEatCount(eatCount) > 0 || onboardingSelected) {
             return imageUrl;
         }
 
@@ -78,17 +81,18 @@ public interface BreadMapper {
     @Mapping(target = "stickerNumber", source = "bread.stickerNumber")
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
-    @Mapping(target = "imageUrl", expression = "java(resolveCatalogImageUrl(bread.getImageUrl(), stats))")
-    @Mapping(target = "isCollected", expression = "java(isCollected(stats))")
+    @Mapping(target = "imageUrl", expression = "java(resolveCatalogImageUrl(bread.getImageUrl(), stats, onboardingSelected))")
+    @Mapping(target = "isCollected", expression = "java(isCollected(stats, onboardingSelected))")
     @Mapping(target = "eatCount", expression = "java(resolveEatCount(stats))")
     @Mapping(target = "avgRating", expression = "java(resolveAvgRating(stats))")
     @Mapping(target = "latestPhotoUrl", expression = "java(resolveLatestPhotoUrl(stats))")
     @Mapping(target = "latestEatenDate", expression = "java(stats == null ? null : stats.getLatestEatenDate())")
-    BreadCatalogItemResponse mapToCatalogItem(Bread bread, BreadRecordCatalogStats stats);
+    BreadCatalogItemResponse mapToCatalogItem(Bread bread, BreadRecordCatalogStats stats, boolean onboardingSelected);
 
     default BreadCatalogListResponse mapToCatalogListResponse(
             List<Bread> breads,
             Map<UUID, BreadRecordCatalogStats> statsMap,
+            Set<UUID> onboardingSelectedBreadIds,
             String nextCursor,
             boolean hasMore,
             long totalCount
@@ -96,7 +100,8 @@ public interface BreadMapper {
         List<BreadCatalogItemResponse> items = breads.stream()
                 .map(bread -> mapToCatalogItem(
                         bread,
-                        statsMap.get(bread.getId())
+                        statsMap.get(bread.getId()),
+                        onboardingSelectedBreadIds != null && onboardingSelectedBreadIds.contains(bread.getId())
                 ))
                 .toList();
 
@@ -108,20 +113,24 @@ public interface BreadMapper {
         );
     }
 
-    default Boolean isCollected(BreadRecordCatalogStats stats) {
+    default boolean hasRecords(BreadRecordCatalogStats stats) {
         return stats != null && resolveEatCount(stats) > 0;
     }
 
-    default String resolveCatalogImageUrl(String imageUrl, BreadRecordCatalogStats stats) {
-        if (isCollected(stats)) {
+    default Boolean isCollected(BreadRecordCatalogStats stats, boolean onboardingSelected) {
+        return hasRecords(stats) || onboardingSelected;
+    }
+
+    default String resolveCatalogImageUrl(String imageUrl, BreadRecordCatalogStats stats, boolean onboardingSelected) {
+        if (hasRecords(stats) || onboardingSelected) {
             return imageUrl;
         }
 
         return toPlaceholderUrl(imageUrl);
     }
 
-    default String resolveProfileImageUrl(String imageUrl, BreadProfileStatsResponse stats) {
-        if (stats != null && stats.getEatCount() != null && stats.getEatCount() > 0) {
+    default String resolveProfileImageUrl(String imageUrl, BreadProfileStatsResponse stats, boolean onboardingSelected) {
+        if ((stats != null && stats.getEatCount() != null && stats.getEatCount() > 0) || onboardingSelected) {
             return imageUrl;
         }
 
@@ -170,13 +179,13 @@ public interface BreadMapper {
     @Mapping(target = "name", source = "bread.name")
     @Mapping(target = "breadType", source = "bread.breadType.code")
     @Mapping(target = "breadTypeLabel", source = "bread.breadType.name")
-    @Mapping(target = "imageUrl", expression = "java(resolveProfileImageUrl(bread.getImageUrl(), stats))")
+    @Mapping(target = "imageUrl", expression = "java(resolveProfileImageUrl(bread.getImageUrl(), stats, onboardingSelected))")
     @Mapping(target = "stats", source = "stats")
     @Mapping(target = "records", source = "records")
     BreadProfileResponse mapToProfileResponse(
             Bread bread,
             BreadProfileStatsResponse stats,
-            List<BreadProfileRecordResponse> records
+            List<BreadProfileRecordResponse> records,
+            boolean onboardingSelected
     );
-
 }

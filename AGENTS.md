@@ -1,156 +1,20 @@
 # Repository Guidelines
 
-## Project Overview
+## Project Structure & Module Organization
+This is a Java 21 Spring Boot backend built with Gradle. Main code lives in `src/main/java/com/bean/breaddiary`, split by domain (`bread`, `breadrecord`, `breadtype`, `auth`, `event`, `recommendation`, `user`) plus shared code under `global`. Tests mirror production packages in `src/test/java`. Runtime resources live in `src/main/resources`. Detailed contributor rules are intentionally split into `harness/`: see `harness/architecture/` for shared conventions, `harness/domains/` for domain notes, and `harness/workflows/` for delivery rules.
 
-This repository is a Java 21 Spring Boot backend for Bread Diary.
+## Build, Test, and Development Commands
+- `./gradlew test` — run the JUnit 5 test suite.
+- `./gradlew build` — compile, test, and package the app.
+- `./gradlew bootRun` — start the API locally.
+- `./gradlew clean build` — rebuild from scratch when outputs/config look stale.
+Use the Gradle wrapper committed to the repository.
 
-- Project name: `bread-diary-backend`
-- Gradle root project name: `bread-diary`
-- Base package: `com.bean.breaddiary`
-- Main class: `BreadDiaryApplication`
-- JPA Auditing is enabled
+## Coding Style & Naming Conventions
+Use 4-space indentation, `PascalCase` for classes, `camelCase` for fields/methods, and lowercase package names. Prefer constructor injection and Lombok class-based DTOs (`@RequiredArgsConstructor`, `@Getter`, `@Setter`); do not introduce Java records unless explicitly requested. Keep mapping logic in Mapper classes. Regular services should depend only on their own repository and mapper; cross-domain flows belong in `ComplexService`. Put Swagger/OpenAPI annotations on controllers and DTOs. Reuse existing patterns from `domain/bread` and `domain/breadrecord` before introducing new structure.
 
-## Tech Stack
+## Testing Guidelines
+This project uses JUnit 5, Spring Boot test starters, H2, and Testcontainers. Add tests in the matching package and name them `*Test`, for example `BreadRecordComplexServiceTest`. Prefer the nearest-layer test for the change: mapper tests for formatting/mapping rules, controller tests for request/response contracts, and service/complex-service tests for orchestration.
 
-- Java 21
-- Gradle
-- Spring Boot 4.0.5
-- Spring Data JPA
-- Spring Validation
-- Spring Web MVC
-- springdoc-openapi
-- MapStruct
-- AWS SDK S3
-- MySQL
-
-## Project Structure
-
-Main code lives under `src/main/java/com/bean/breaddiary`.
-
-Organize code by domain and follow the existing project structure.
-
-- `domain/<feature>/controller` for HTTP endpoints
-- `domain/<feature>/service` for business logic
-- `domain/<feature>/repository` for Spring Data JPA access
-- `domain/<feature>/entity` for persistence models
-- `domain/<feature>/dto/request` for request DTOs
-- `domain/<feature>/dto/response` for response DTOs
-- `domain/<feature>/dto/mapper` for MapStruct mappers
-- `global/` for shared concerns such as S3 and common response wrappers
-
-Tests belong in `src/test/java/com/bean/breaddiary`, mirroring the production package structure.
-
-## Existing Implemented Domains
-
-This is not a blank scaffold.
-
-The following domains already exist and must be used as reference before implementing anything new:
-
-- `domain.bread`
-- `domain.breadrecord`
-
-Always inspect similar existing code first, then extend in the same style.
-
-## Current Domain Characteristics
-
-### Bread
-- `stickerNumber` is unique
-- `name` is unique
-- has `breadType`
-- has `imageUrl`
-- if `createdBy` exists, it means a user-created bread
-
-### BreadRecord
-- has `userId`
-- has `bread` as ManyToOne
-- has `photoUrl`
-- has `shopName`
-- has `eatenDate`
-- has `rating`
-- has `review`
-- has `isPublic`
-- uses `deletedAt` for soft delete
-
-## API and Serialization Rules
-
-- Reuse the existing `global.common.ApiResponse` response wrapper
-- Keep the response structure consistent with `{ success, data }`
-- Do not break existing snake_case response expectations
-- Be careful when changing JSON serialization behavior
-- Multipart request fields follow snake_case naming
-- Existing create/update endpoints use `multipart/form-data` with `@ModelAttribute`
-
-## Current Authentication / User Identification Rules
-
-- Authentication is not fully implemented yet
-- Use `X-USER-ID` as the temporary user identification mechanism
-- Do not introduce a new authentication or authorization system unless explicitly requested
-
-## Service Layer Rules
-
-- Keep controllers thin
-- Put business logic in services
-- If the existing flow uses service and complex orchestration patterns, follow the existing structure instead of inventing a new one
-- Prefer minimal targeted changes over broad refactoring
-
-## Coding Conventions
-
-- Use 4-space indentation
-- Use `PascalCase` for classes
-- Use `camelCase` for fields and methods
-- Use `UPPER_SNAKE_CASE` for constants
-- Keep package names lowercase
-- Prefer constructor injection with `@RequiredArgsConstructor`
-- Name DTOs by intent, for example `CreateBreadRecordRequest`, `BreadRecordCreateResponse`
-
-## Swagger / Message Tone
-
-- Keep Swagger descriptions in Korean
-- Keep user-facing messages in Korean
-- Some existing text may have encoding issues; preserve meaning rather than aggressively rewriting everything
-
-## Testing Rules
-
-- Use JUnit 5
-- Add focused tests for controller/service changes when reasonable
-- Avoid over-expanding test infrastructure unless necessary
-- Existing tests may expect snake_case JSON fields, so preserve that behavior
-
-## Build / Run Commands
-
-Use the Gradle wrapper where available.
-
-Typical commands:
-- `./gradlew test`
-- `./gradlew build`
-- `./gradlew bootRun`
-- `./gradlew clean build`
-
-Note:
-- the repository may currently have environment/setup limitations
-- do not assume runtime configuration files already exist under `src/main/resources`
-
-## Git / PR Rules
-
-- Do not work directly on `main` or `develop`
-- Branch from `develop`
-- PR target is `develop`
-- Follow Conventional Commits
-- Branch names may follow team issue-based naming such as `feat/25-user-domain`
-
-## Working Rules for Codex
-
-Before making changes:
-1. Read the relevant existing domain code first
-2. Summarize the reference files briefly
-3. Check whether similar controller/service/repository/DTO patterns already exist
-4. Reuse existing conventions before creating anything new
-
-When responding with implementation:
-1. First list which files will be created or modified
-2. Then provide the code changes
-3. At the end, list:
-   - created files
-   - modified files
-   - follow-up TODOs
-   - what the next branch should read first
+## Commit & Pull Request Guidelines
+Follow Conventional Commit prefixes such as `feat:`, `fix:`, and `chore:` with a short imperative subject. Keep work in one logical commit or a small related set. Do not default to long PR or issue prose; provide a brief work summary, the files to stage, and a recommended commit message unless more is requested.

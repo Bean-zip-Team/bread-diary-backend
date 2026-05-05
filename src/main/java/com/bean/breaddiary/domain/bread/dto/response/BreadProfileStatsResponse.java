@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Schema(description = "빵 프로필 통계")
 public class BreadProfileStatsResponse {
 
-    @Schema(description = "현재 유저의 해당 빵 기록 수", example = "5")
+    @Schema(description = "현재 유저의 해당 빵 실제 기록 수. 온보딩만 선택한 경우 0일 수 있습니다.", example = "5")
     private Long eatCount;
 
     @Schema(description = "현재 유저의 해당 빵 평균 별점", example = "4.8", nullable = true)

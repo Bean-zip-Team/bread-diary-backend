@@ -7,6 +7,7 @@ import com.bean.breaddiary.domain.auth.service.UserSessionService;
 import com.bean.breaddiary.domain.bread.entity.Bread;
 import com.bean.breaddiary.domain.bread.repository.BreadRepository;
 import com.bean.breaddiary.domain.breadrecord.repository.BreadRecordRepository;
+import com.bean.breaddiary.domain.onboarding.service.OnboardingService;
 import com.bean.breaddiary.domain.user.dto.response.UserWithdrawalResponse;
 import com.bean.breaddiary.domain.user.entity.User;
 import com.bean.breaddiary.domain.user.repository.UserRepository;
@@ -39,6 +40,7 @@ public class UserWithdrawalService {
     private final BreadRecordRepository breadRecordRepository;
     private final UserSessionService userSessionService;
     private final TossAuthClient tossAuthClient;
+    private final OnboardingService onboardingService;
 
     @Value("${TOSS_WEBHOOK_SECRET:${app.auth.toss.webhook-secret:}}")
     private String tossWebhookSecret;
@@ -124,6 +126,7 @@ public class UserWithdrawalService {
             breadRepository.delete(bread);
         }
 
+        onboardingService.deleteAllByUserId(userId);
         userSessionService.deleteAllSessions(userId);
         userRepository.delete(user);
     }

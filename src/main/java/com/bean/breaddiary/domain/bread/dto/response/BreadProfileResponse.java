@@ -31,7 +31,7 @@ public class BreadProfileResponse {
     @Schema(description = "빵 종류 한글 표시명", example = "페이스트리")
     private String breadTypeLabel;
 
-    @Schema(description = "카탈로그 이미지 URL", example = "https://cdn.bread-diary.app/breads/croissant.webp")
+    @Schema(description = "카탈로그 이미지 URL. 실제 기록이 있거나 온보딩에서 선택한 빵은 원본 이미지를, 완전 미수집 빵은 placeholder 이미지를 반환할 수 있습니다.", example = "https://cdn.bread-diary.app/breads/croissant.webp")
     private String imageUrl;
 
     @Schema(description = "현재 유저의 해당 빵 통계")

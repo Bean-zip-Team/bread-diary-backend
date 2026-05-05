@@ -11,15 +11,18 @@ import com.bean.breaddiary.domain.breadtype.service.BreadTypeService;
 import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStats;
 import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
 import com.bean.breaddiary.domain.breadrecord.service.BreadRecordService;
+import com.bean.breaddiary.domain.onboarding.service.OnboardingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.*;
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.BAGEL;
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.PASTRY;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -31,6 +34,7 @@ class BreadComplexServiceTest {
     private BreadService breadService;
     private BreadTypeService breadTypeService;
     private BreadRecordService breadRecordService;
+    private OnboardingService onboardingService;
     private BreadComplexService breadComplexService;
 
     @BeforeEach
@@ -38,27 +42,24 @@ class BreadComplexServiceTest {
         breadService = mock(BreadService.class);
         breadTypeService = mock(BreadTypeService.class);
         breadRecordService = mock(BreadRecordService.class);
-        breadComplexService = new BreadComplexService(breadService, breadTypeService, breadRecordService);
+        onboardingService = mock(OnboardingService.class);
+        breadComplexService = new BreadComplexService(breadService, breadTypeService, breadRecordService, onboardingService);
     }
 
     @Test
-    void autocompleteBreadsCombinesBreadSearchAndUserEatCounts() {
+    void autocompleteBreadsCombinesBreadSearchEatCountsAndOnboardingSelections() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID breadId = UUID.fromString("b0e1f2a3-c4d5-6789-abcd-ef0123456789");
-        Bread bread = Bread.builder()
-                .id(breadId)
-                .stickerNumber(6)
-                .name("크루아상")
-                .breadType(PASTRY)
-                .imageUrl("https://cdn.bread-diary.app/breads/croissant.webp")
-                .build();
+        Bread bread = createBread(breadId, 6, "크루아상", PASTRY);
         BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(bread), "6", true);
         BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), "6", true);
 
         when(breadService.searchAutocompleteBreads("크루", "3", 10, userId)).thenReturn(autocompleteSlice);
         when(breadRecordService.countActiveRecordsByBreadIds(userId, List.of(breadId)))
                 .thenReturn(Map.of(breadId, 5L));
-        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L)))
+        when(onboardingService.findSelectedBreadIds(userId, List.of(breadId)))
+                .thenReturn(Set.of(breadId));
+        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L), Set.of(breadId)))
                 .thenReturn(expected);
 
         BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads("크루", "3", 10, userId);
@@ -66,110 +67,52 @@ class BreadComplexServiceTest {
         assertSame(expected, actual);
         verify(breadService).searchAutocompleteBreads("크루", "3", 10, userId);
         verify(breadRecordService).countActiveRecordsByBreadIds(userId, List.of(breadId));
-        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L));
+        verify(onboardingService).findSelectedBreadIds(userId, List.of(breadId));
+        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of(breadId, 5L), Set.of(breadId));
     }
 
     @Test
-    void autocompleteBreadsSkipsEatCountLookupForAnonymousUser() {
+    void autocompleteBreadsSkipsUserLookupsForAnonymousUser() {
         BreadService.AutocompleteSlice autocompleteSlice = new BreadService.AutocompleteSlice(List.of(), null, false);
         BreadAutocompleteResponse expected = new BreadAutocompleteResponse(List.of(), null, false);
 
         when(breadService.searchAutocompleteBreads(null, null, null, null)).thenReturn(autocompleteSlice);
-        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of())).thenReturn(expected);
+        when(breadService.createAutocompleteResponse(autocompleteSlice, Map.of(), Set.of())).thenReturn(expected);
 
         BreadAutocompleteResponse actual = breadComplexService.autocompleteBreads(null, null, null, null);
 
         assertSame(expected, actual);
         verify(breadService).searchAutocompleteBreads(null, null, null, null);
-        verifyNoInteractions(breadRecordService);
-        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of());
+        verifyNoInteractions(breadRecordService, onboardingService);
+        verify(breadService).createAutocompleteResponse(autocompleteSlice, Map.of(), Set.of());
     }
 
     @Test
-    void getBreadCatalogCreatesAnonymousStickerNumberPage() {
-        Bread firstBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000001"),
-                1,
-                "크루아상",
-                PASTRY
-        );
-        Bread secondBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000002"),
-                2,
-                "베이글",
-                BAGEL
-        );
-        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "1", true, 2L);
-
-        when(breadService.findCatalogCandidates(null, null, null)).thenReturn(List.of(firstBread, secondBread));
-        when(breadService.createCatalogListResponse(
-                List.of(firstBread),
-                Map.of(),
-                "1",
-                true,
-                2L
-        )).thenReturn(expected);
-
-        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
-                "sticker_number",
-                "all",
-                null,
-                null,
-                null,
-                1,
-                null
-        );
-
-        assertSame(expected, actual);
-        verify(breadService).findCatalogCandidates(null, null, null);
-        verifyNoInteractions(breadRecordService);
-        verify(breadService).createCatalogListResponse(
-                List.of(firstBread),
-                Map.of(),
-                "1",
-                true,
-                2L
-        );
-    }
-
-    @Test
-    void getBreadCatalogSortsCollectedBreadsFirstForAllFilter() {
+    void getBreadCatalogSortsRecordedThenOnboardingThenUncollectedForAllFilter() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        Bread uncollectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000001"),
-                1,
-                "소금빵",
-                PASTRY
-        );
-        Bread collectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000002"),
-                2,
-                "크루아상",
-                PASTRY
-        );
+        Bread recordedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000001"), 3, "크루아상", PASTRY);
+        Bread onboardingBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000002"), 1, "단팥빵", PASTRY);
+        Bread uncollectedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000003"), 2, "베이글", BAGEL);
         Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(
-                collectedBread.getId(),
-                new BreadRecordCatalogStats(
-                        collectedBread.getId(),
-                        1L,
-                        4.5,
-                        null,
-                        LocalDate.of(2026, 3, 14)
-                )
+                recordedBread.getId(),
+                new BreadRecordCatalogStats(recordedBread.getId(), 1L, 4.5, null, LocalDate.of(2026, 3, 14))
         );
-        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 2L);
+        Set<UUID> onboardingSelectedBreadIds = Set.of(onboardingBread.getId());
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 3L);
 
-        when(breadService.findCatalogCandidates(null, null, userId)).thenReturn(List.of(uncollectedBread, collectedBread));
-        when(breadRecordService.findCatalogStatsByBreadIds(
-                userId,
-                List.of(uncollectedBread.getId(), collectedBread.getId())
-        )).thenReturn(statsMap);
+        when(breadService.findCatalogCandidates(null, null, userId))
+                .thenReturn(List.of(uncollectedBread, onboardingBread, recordedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(userId, List.of(uncollectedBread.getId(), onboardingBread.getId(), recordedBread.getId())))
+                .thenReturn(statsMap);
+        when(onboardingService.findSelectedBreadIds(userId, List.of(uncollectedBread.getId(), onboardingBread.getId(), recordedBread.getId())))
+                .thenReturn(onboardingSelectedBreadIds);
         when(breadService.createCatalogListResponse(
-                List.of(collectedBread, uncollectedBread),
+                List.of(recordedBread, onboardingBread, uncollectedBread),
                 statsMap,
+                onboardingSelectedBreadIds,
                 null,
                 false,
-                2L
+                3L
         )).thenReturn(expected);
 
         BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
@@ -184,112 +127,134 @@ class BreadComplexServiceTest {
 
         assertSame(expected, actual);
         verify(breadService).createCatalogListResponse(
-                List.of(collectedBread, uncollectedBread),
+                List.of(recordedBread, onboardingBread, uncollectedBread),
                 statsMap,
+                onboardingSelectedBreadIds,
                 null,
                 false,
-                2L
+                3L
         );
     }
 
+
     @Test
-    void getBreadCatalogUsesCompositeCursorForAllFilterOrdering() {
+    void getBreadCatalogLatestSortKeepsOnboardingOnlyBreadsAfterRecordedBreads() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        Bread firstCollectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000001"),
-                2,
-                "크루아상",
-                PASTRY
-        );
-        Bread secondCollectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000002"),
-                3,
-                "베이글",
-                BAGEL
-        );
-        Bread uncollectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000003"),
-                1,
-                "소금빵",
-                PASTRY
-        );
+        Bread recordedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000011"), 3, "크루아상", PASTRY);
+        Bread onboardingBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000012"), 1, "단팥빵", PASTRY);
+        Bread uncollectedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000013"), 2, "베이글", BAGEL);
         Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(
-                firstCollectedBread.getId(),
-                new BreadRecordCatalogStats(firstCollectedBread.getId(), 1L, 4.0, null, LocalDate.of(2026, 3, 14)),
-                secondCollectedBread.getId(),
-                new BreadRecordCatalogStats(secondCollectedBread.getId(), 1L, 4.5, null, LocalDate.of(2026, 3, 15))
+                recordedBread.getId(),
+                new BreadRecordCatalogStats(recordedBread.getId(), 1L, 4.5, null, LocalDate.of(2026, 3, 14))
         );
-        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), "2_" + firstCollectedBread.getId(), true, 3L);
+        Set<UUID> onboardingSelectedBreadIds = Set.of(onboardingBread.getId());
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 3L);
 
         when(breadService.findCatalogCandidates(null, null, userId))
-                .thenReturn(List.of(uncollectedBread, firstCollectedBread, secondCollectedBread));
-        when(breadRecordService.findCatalogStatsByBreadIds(
-                userId,
-                List.of(uncollectedBread.getId(), firstCollectedBread.getId(), secondCollectedBread.getId())
-        )).thenReturn(statsMap);
+                .thenReturn(List.of(uncollectedBread, onboardingBread, recordedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(userId, List.of(uncollectedBread.getId(), onboardingBread.getId(), recordedBread.getId())))
+                .thenReturn(statsMap);
+        when(onboardingService.findSelectedBreadIds(userId, List.of(uncollectedBread.getId(), onboardingBread.getId(), recordedBread.getId())))
+                .thenReturn(onboardingSelectedBreadIds);
         when(breadService.createCatalogListResponse(
-                List.of(firstCollectedBread),
+                List.of(recordedBread, onboardingBread),
                 statsMap,
-                "2_" + firstCollectedBread.getId(),
-                true,
+                onboardingSelectedBreadIds,
+                null,
+                false,
                 3L
         )).thenReturn(expected);
 
         BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
-                "sticker_number",
+                "latest",
                 "all",
                 null,
                 null,
                 null,
-                1,
+                20,
                 userId
         );
 
         assertSame(expected, actual);
         verify(breadService).createCatalogListResponse(
-                List.of(firstCollectedBread),
+                List.of(recordedBread, onboardingBread),
                 statsMap,
-                "2_" + firstCollectedBread.getId(),
-                true,
+                onboardingSelectedBreadIds,
+                null,
+                false,
+                3L
+        );
+    }
+
+
+    @Test
+    void getBreadCatalogRatingSortKeepsOnboardingOnlyBreadsAfterRecordedBreads() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Bread highRatedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000021"), 3, "크루아상", PASTRY);
+        Bread onboardingBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000022"), 1, "단팥빵", PASTRY);
+        Bread lowerRatedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000023"), 2, "베이글", BAGEL);
+        Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(
+                highRatedBread.getId(),
+                new BreadRecordCatalogStats(highRatedBread.getId(), 1L, 4.8, null, LocalDate.of(2026, 3, 14)),
+                lowerRatedBread.getId(),
+                new BreadRecordCatalogStats(lowerRatedBread.getId(), 1L, 4.2, null, LocalDate.of(2026, 3, 12))
+        );
+        Set<UUID> onboardingSelectedBreadIds = Set.of(onboardingBread.getId());
+        BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 3L);
+
+        when(breadService.findCatalogCandidates(null, null, userId))
+                .thenReturn(List.of(onboardingBread, lowerRatedBread, highRatedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(userId, List.of(onboardingBread.getId(), lowerRatedBread.getId(), highRatedBread.getId())))
+                .thenReturn(statsMap);
+        when(onboardingService.findSelectedBreadIds(userId, List.of(onboardingBread.getId(), lowerRatedBread.getId(), highRatedBread.getId())))
+                .thenReturn(onboardingSelectedBreadIds);
+        when(breadService.createCatalogListResponse(
+                List.of(highRatedBread, lowerRatedBread, onboardingBread),
+                statsMap,
+                onboardingSelectedBreadIds,
+                null,
+                false,
+                3L
+        )).thenReturn(expected);
+
+        BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
+                "rating",
+                "all",
+                null,
+                null,
+                null,
+                20,
+                userId
+        );
+
+        assertSame(expected, actual);
+        verify(breadService).createCatalogListResponse(
+                List.of(highRatedBread, lowerRatedBread, onboardingBread),
+                statsMap,
+                onboardingSelectedBreadIds,
+                null,
+                false,
                 3L
         );
     }
 
     @Test
-    void getBreadCatalogAppliesCollectedFilterWithUserStats() {
+    void getBreadCatalogCollectedFilterIncludesOnboardingSelectedBreadWithoutRecords() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        Bread collectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000001"),
-                1,
-                "크루아상",
-                PASTRY
-        );
-        Bread uncollectedBread = createBread(
-                UUID.fromString("10000000-0000-0000-0000-000000000002"),
-                2,
-                "베이글",
-                BAGEL
-        );
-        BreadRecordCatalogStats stats = new BreadRecordCatalogStats(
-                collectedBread.getId(),
-                3L,
-                4.666,
-                "https://cdn.bread-diary.app/bread-photos/record.webp",
-                LocalDate.of(2026, 3, 14)
-        );
-        Map<UUID, BreadRecordCatalogStats> statsMap = Map.of(collectedBread.getId(), stats);
+        Bread onboardingBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000001"), 1, "단팥빵", PASTRY);
+        Bread uncollectedBread = createBread(UUID.fromString("10000000-0000-0000-0000-000000000002"), 2, "베이글", BAGEL);
+        Set<UUID> onboardingSelectedBreadIds = Set.of(onboardingBread.getId());
         BreadCatalogListResponse expected = new BreadCatalogListResponse(List.of(), null, false, 1L);
 
-        when(breadTypeService.getBreadTypeByCode("PASTRY")).thenReturn(PASTRY);
-        when(breadService.findCatalogCandidates("크루", PASTRY, userId))
-                .thenReturn(List.of(collectedBread, uncollectedBread));
-        when(breadRecordService.findCatalogStatsByBreadIds(
-                userId,
-                List.of(collectedBread.getId(), uncollectedBread.getId())
-        )).thenReturn(statsMap);
+        when(breadService.findCatalogCandidates(null, null, userId)).thenReturn(List.of(onboardingBread, uncollectedBread));
+        when(breadRecordService.findCatalogStatsByBreadIds(userId, List.of(onboardingBread.getId(), uncollectedBread.getId())))
+                .thenReturn(Map.of());
+        when(onboardingService.findSelectedBreadIds(userId, List.of(onboardingBread.getId(), uncollectedBread.getId())))
+                .thenReturn(onboardingSelectedBreadIds);
         when(breadService.createCatalogListResponse(
-                List.of(collectedBread),
-                statsMap,
+                List.of(onboardingBread),
+                Map.of(),
+                onboardingSelectedBreadIds,
                 null,
                 false,
                 1L
@@ -298,55 +263,21 @@ class BreadComplexServiceTest {
         BreadCatalogListResponse actual = breadComplexService.getBreadCatalog(
                 "sticker_number",
                 "collected",
-                "PASTRY",
-                "크루",
+                null,
+                null,
                 null,
                 20,
                 userId
         );
 
         assertSame(expected, actual);
-        verify(breadTypeService).getBreadTypeByCode("PASTRY");
-        verify(breadService).findCatalogCandidates("크루", PASTRY, userId);
-        verify(breadRecordService).findCatalogStatsByBreadIds(
-                userId,
-                List.of(collectedBread.getId(), uncollectedBread.getId())
-        );
-        verify(breadService).createCatalogListResponse(
-                List.of(collectedBread),
-                statsMap,
-                null,
-                false,
-                1L
-        );
     }
 
     @Test
-    void getBreadProfileRejectsAnonymousAccessToUserCreatedBread() {
-        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
-
-        when(breadService.getBreadById(breadId, null)).thenThrow(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
-
-        org.springframework.web.server.ResponseStatusException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                org.springframework.web.server.ResponseStatusException.class,
-                () -> breadComplexService.getBreadProfile(breadId, null)
-        );
-
-        org.junit.jupiter.api.Assertions.assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, exception.getStatusCode());
-        verify(breadService).getBreadById(breadId, null);
-        verifyNoInteractions(breadRecordService);
-    }
-
-    @Test
-    void getBreadProfileCombinesBreadAndUserRecords() {
+    void getBreadProfileCombinesBreadRecordsAndOnboardingSelection() {
         UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
-        Bread bread = createBread(
-                breadId,
-                6,
-                "크루아상",
-                PASTRY
-        );
+        Bread bread = createBread(breadId, 6, "크루아상", PASTRY);
         BreadRecord record = BreadRecord.builder()
                 .userId(userId)
                 .bread(bread)
@@ -367,16 +298,13 @@ class BreadComplexServiceTest {
                 .thenReturn(List.of(record));
         when(breadRecordService.createProfileStats(List.of(record))).thenReturn(stats);
         when(breadRecordService.createProfileRecordResponses(List.of(record))).thenReturn(recordResponses);
-        when(breadService.createProfileResponse(bread, stats, recordResponses)).thenReturn(expected);
+        when(onboardingService.isSelected(userId, breadId)).thenReturn(true);
+        when(breadService.createProfileResponse(bread, stats, recordResponses, true)).thenReturn(expected);
 
         BreadProfileResponse actual = breadComplexService.getBreadProfile(breadId, userId);
 
         assertSame(expected, actual);
-        verify(breadService).getBreadById(breadId, userId);
-        verify(breadRecordService).findActiveRecordsByUserAndBread(userId, bread);
-        verify(breadRecordService).createProfileStats(List.of(record));
-        verify(breadRecordService).createProfileRecordResponses(List.of(record));
-        verify(breadService).createProfileResponse(bread, stats, recordResponses);
+        verify(breadService).createProfileResponse(bread, stats, recordResponses, true);
     }
 
     private Bread createBread(UUID id, Integer stickerNumber, String name, BreadType breadType) {
