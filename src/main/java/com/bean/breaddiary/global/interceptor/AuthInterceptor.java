@@ -94,7 +94,9 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        if (HTTP_GET.equalsIgnoreCase(method) && "/bread-types".equals(requestUri)) {
+        if (HTTP_GET.equalsIgnoreCase(method)
+                && ("/bread-types".equals(requestUri)
+                || "/onboarding/breads".equals(requestUri))) {
             return true;
         }
 

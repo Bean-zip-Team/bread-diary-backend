@@ -101,6 +101,14 @@ public class BreadService {
         return breadRepository.findAllSystemCatalogBreadsByIds(breadIds);
     }
 
+    public List<Bread> findAllSystemCatalogBreadsByNames(List<String> names) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
+        }
+
+        return breadRepository.findAllSystemCatalogBreadsByNames(names);
+    }
+
     public List<Bread> findCatalogCandidates(String search, BreadType breadType, UUID userId) {
         return breadRepository.findCatalogCandidates(
                 normalizeSearch(search),
