@@ -1,0 +1,49 @@
+name: Bread Ddoby
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Let's move, Ddoby!
+        uses: actions/checkout@v4
+
+      - name: Inspect it, Ddoby!
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build it, Ddoby!
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build -x test
+
+      - name: Send jar to server, Ddoby!
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: beanteam
+          key: ${{ secrets.SSH_KEY }}
+          source: "build/libs/bread-diary-0.0.1-SNAPSHOT.jar"
+          target: "/home/beanteam/bread-diary-backend/build/libs"
+
+      - name: Wake up, Ddoby!
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: beanteam
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/beanteam/bread-diary-backend/build/libs
+
+            kill -9 $(lsof -t -i:8080) || true
+
+            nohup java -Xms256m -Xmx512m \
+              -jar bread-diary-0.0.1-SNAPSHOT.jar \
+              > app.log 2>&1 &
