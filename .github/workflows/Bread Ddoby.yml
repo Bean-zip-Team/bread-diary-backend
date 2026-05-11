@@ -24,7 +24,7 @@ jobs:
           chmod +x gradlew
           ./gradlew clean build -x test
 
-      - name: Send jar to server, Ddoby!
+      - name: Send it, Ddoby!
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
