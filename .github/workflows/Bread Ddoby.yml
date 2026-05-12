@@ -19,6 +19,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Work it, Ddoby!
+        run: |
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_PROPERTIES }}" > src/main/resources/application.properties
+
       - name: Build it, Ddoby!
         run: |
           chmod +x gradlew
