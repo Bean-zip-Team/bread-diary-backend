@@ -37,6 +37,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "build/libs/bread-diary-0.0.1-SNAPSHOT.jar"
           target: "/home/beanteam/bread-diary-backend/build/libs"
+          strip_components: 2
+          overwrite: true
 
       - name: Wake up, Ddoby!
         uses: appleboy/ssh-action@v1.0.3
