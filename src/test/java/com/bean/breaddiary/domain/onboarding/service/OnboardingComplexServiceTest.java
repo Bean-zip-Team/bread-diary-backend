@@ -50,7 +50,7 @@ class OnboardingComplexServiceTest {
         assertEquals(30, response.getItems().size());
         assertEquals("생식빵", response.getItems().get(0).getName());
         assertEquals("마늘바게트", response.getItems().get(12).getName());
-        assertEquals(true, response.getItems().get(0).getImageUrl().contains("생식빵"));
+        assertEquals("https://du4zizlgiw14n.cloudfront.net/images/001_생식빵.webp", response.getItems().get(0).getImageUrl());
     }
 
     @Test
