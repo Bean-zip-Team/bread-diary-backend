@@ -45,7 +45,7 @@ class OnboardingControllerTest {
                         "생식빵",
                         41,
                         "BREAD",
-                        "https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.png"
+                        "https://du4zizlgiw14n.cloudfront.net/images/webp/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.webp"
                 ))
         );
         when(onboardingComplexService.getOnboardingBreads()).thenReturn(response);
@@ -57,7 +57,7 @@ class OnboardingControllerTest {
                 .andExpect(jsonPath("$.data.items[0].name").value("생식빵"))
                 .andExpect(jsonPath("$.data.items[0].sticker_number").value(41))
                 .andExpect(jsonPath("$.data.items[0].bread_type").value("BREAD"))
-                .andExpect(jsonPath("$.data.items[0].image_url").value("https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.png"))
+                .andExpect(jsonPath("$.data.items[0].image_url").value("https://du4zizlgiw14n.cloudfront.net/images/webp/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.webp"))
                 .andExpect(jsonPath("$.data.items[0].breadId").doesNotExist())
                 .andExpect(jsonPath("$.data.items[0].imageUrl").doesNotExist());
 

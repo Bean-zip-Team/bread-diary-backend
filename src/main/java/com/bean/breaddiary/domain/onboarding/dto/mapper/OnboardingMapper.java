@@ -25,14 +25,23 @@ public interface OnboardingMapper {
     }
 
     default String toOnboardingImageUrl(String imageUrl) {
-        if (imageUrl == null || imageUrl.endsWith("_placeholder.png")) {
+        if (imageUrl == null) {
             return imageUrl;
         }
 
-        if (imageUrl.endsWith(".png")) {
-            return imageUrl.substring(0, imageUrl.length() - 4) + ".webp";
+        if (imageUrl.contains("/images/webp/") && imageUrl.endsWith(".webp")) {
+            return imageUrl;
         }
 
-        return imageUrl;
+        String convertedUrl = imageUrl;
+        if (convertedUrl.contains("/images/") && !convertedUrl.contains("/images/webp/")) {
+            convertedUrl = convertedUrl.replace("/images/", "/images/webp/");
+        }
+
+        if (convertedUrl.endsWith(".png")) {
+            return convertedUrl.substring(0, convertedUrl.length() - 4) + ".webp";
+        }
+
+        return convertedUrl;
     }
 }
