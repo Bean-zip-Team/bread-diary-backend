@@ -27,6 +27,6 @@ public class OnboardingBreadItemResponse {
     @Schema(description = "빵 종류", example = "BREAD")
     private String breadType;
 
-    @Schema(description = "원본 카탈로그 이미지 URL", example = "https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.png")
+    @Schema(description = "온보딩 표시용 카탈로그 이미지 URL", example = "https://du4zizlgiw14n.cloudfront.net/images/webp/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.webp")
     private String imageUrl;
 }
