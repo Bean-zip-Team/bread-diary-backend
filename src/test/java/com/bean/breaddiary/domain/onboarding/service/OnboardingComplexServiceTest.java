@@ -41,16 +41,17 @@ class OnboardingComplexServiceTest {
     }
 
     @Test
-    void getOnboardingBreadsReturnsFixedThirtyItemsInCatalogOrder() {
+    void getOnboardingBreadsReturnsFixedNineItemsInCatalogOrder() {
         when(breadService.findAllSystemCatalogBreadsByNames(OnboardingBreadCatalog.catalogNames()))
                 .thenReturn(createAllOnboardingBreads());
 
         OnboardingBreadListResponse response = onboardingComplexService.getOnboardingBreads();
 
-        assertEquals(30, response.getItems().size());
-        assertEquals("생식빵", response.getItems().get(0).getName());
-        assertEquals("마늘바게트", response.getItems().get(12).getName());
-        assertEquals("https://du4zizlgiw14n.cloudfront.net/images/webp/001_생식빵.webp", response.getItems().get(0).getImageUrl());
+        assertEquals(9, response.getItems().size());
+        assertEquals("단팥빵", response.getItems().get(0).getName());
+        assertEquals("두쫀쿠", response.getItems().get(2).getName());
+        assertEquals("크루아상", response.getItems().get(8).getName());
+        assertEquals("https://du4zizlgiw14n.cloudfront.net/images/webp/001_단팥빵.webp", response.getItems().get(0).getImageUrl());
     }
 
     @Test
@@ -107,7 +108,7 @@ class OnboardingComplexServiceTest {
     @Test
     void getOnboardingBreadsFailsWhenCatalogBreadIsMissing() {
         when(breadService.findAllSystemCatalogBreadsByNames(OnboardingBreadCatalog.catalogNames()))
-                .thenReturn(createAllOnboardingBreads().subList(0, 29));
+                .thenReturn(createAllOnboardingBreads().subList(0, 8));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,

@@ -18,7 +18,7 @@ public class OnboardingBreadListResponse {
 
     @ArraySchema(
             schema = @Schema(implementation = OnboardingBreadItemResponse.class),
-            arraySchema = @Schema(description = "온보딩에서 선택 가능한 고정 30개 빵 목록")
+            arraySchema = @Schema(description = "온보딩에서 선택 가능한 고정 9개 빵 목록")
     )
     private List<OnboardingBreadItemResponse> items;
 }

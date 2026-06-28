@@ -26,7 +26,7 @@ class OnboardingMapperTest {
     void mapToItemConvertsCatalogPngToWebpForOnboarding() {
         Bread bread = bread("https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.png");
 
-        OnboardingBreadItemResponse response = onboardingMapper.mapToItem(OnboardingBreadCatalog.LOAF_BREAD, bread);
+        OnboardingBreadItemResponse response = onboardingMapper.mapToItem(OnboardingBreadCatalog.RED_BEAN_BREAD, bread);
 
         assertEquals("https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5.webp", response.getImageUrl());
     }
@@ -35,7 +35,7 @@ class OnboardingMapperTest {
     void mapToItemKeepsPlaceholderPngUnchanged() {
         Bread bread = bread("https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5_placeholder.png");
 
-        OnboardingBreadItemResponse response = onboardingMapper.mapToItem(OnboardingBreadCatalog.LOAF_BREAD, bread);
+        OnboardingBreadItemResponse response = onboardingMapper.mapToItem(OnboardingBreadCatalog.RED_BEAN_BREAD, bread);
 
         assertEquals("https://du4zizlgiw14n.cloudfront.net/images/041_%EC%83%9D%EC%8B%9D%EB%B9%B5_placeholder.png", response.getImageUrl());
     }
