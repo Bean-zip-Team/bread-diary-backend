@@ -48,10 +48,10 @@ class OnboardingComplexServiceTest {
         OnboardingBreadListResponse response = onboardingComplexService.getOnboardingBreads();
 
         assertEquals(9, response.getItems().size());
-        assertEquals("단팥빵", response.getItems().get(0).getName());
-        assertEquals("두쫀쿠", response.getItems().get(2).getName());
+        assertEquals("마카롱", response.getItems().get(0).getName());
+        assertEquals("두쫀쿠", response.getItems().get(1).getName());
         assertEquals("크루아상", response.getItems().get(8).getName());
-        assertEquals("https://du4zizlgiw14n.cloudfront.net/images/webp/001_단팥빵.webp", response.getItems().get(0).getImageUrl());
+        assertEquals("https://du4zizlgiw14n.cloudfront.net/images/webp/001_마카롱.webp", response.getItems().get(0).getImageUrl());
     }
 
     @Test
