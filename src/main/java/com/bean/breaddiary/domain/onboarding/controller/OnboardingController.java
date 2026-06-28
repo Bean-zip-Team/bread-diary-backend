@@ -25,7 +25,7 @@ public class OnboardingController {
 
     @Operation(
             summary = "온보딩 빵 목록 조회",
-            description = "온보딩에서 선택 가능한 고정 30개 빵 목록을 순서대로 조회합니다. 각 항목의 imageUrl은 시스템 카탈로그 원본 이미지를 반환합니다."
+            description = "온보딩에서 선택 가능한 고정 9개 빵 목록을 순서대로 조회합니다. 각 항목의 imageUrl은 시스템 카탈로그 원본 이미지를 반환합니다."
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
