@@ -1,0 +1,122 @@
+package com.bean.breaddiary.domain.breadrecord.repository;
+
+import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadrecord.entity.BreadRecord;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCatalogStatsProjection;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordCountProjection;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.BreadRecordLatestPhotoProjection;
+import com.bean.breaddiary.domain.breadrecord.dto.projection.UserStatsProjection;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+import java.time.LocalDate;
+import java.util.UUID;
+
+public interface BreadRecordRepository extends JpaRepository<BreadRecord, UUID> {
+
+    Optional<BreadRecord> findByIdAndDeletedAtIsNull(UUID id);
+    List<BreadRecord> findAllByUserId(UUID userId);
+    List<BreadRecord> findAllByUserIdAndBread(UUID userId, Bread bread);
+    List<BreadRecord> findAllByUserIdAndBreadAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId, Bread bread);
+    long countByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
+    long countByUserIdAndBread(UUID userId, Bread bread);
+    boolean existsByUserIdAndBreadAndDeletedAtIsNull(UUID userId, Bread bread);
+    boolean existsByBread(Bread bread);
+    boolean existsByBreadAndDeletedAtIsNull(Bread bread);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from BreadRecord breadRecord where breadRecord.userId = :userId")
+    void hardDeleteAllByUserId(@Param("userId") UUID userId);
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.userId = :userId
+              and br.bread.id in :breadIds
+              and br.deletedAt is null
+            group by br.bread.id
+            """)
+    List<BreadRecordCountProjection> countActiveRecordsByBreadIds(
+            @Param("userId") UUID userId,
+            @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.deletedAt is null
+              and br.bread.id in :breadIds
+            group by br.bread.id
+            """)
+    List<BreadRecordCountProjection> countTotalActiveRecordsByBreadIds(
+            @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select br.bread.id as breadId, count(br) as eatCount
+            from BreadRecord br
+            where br.deletedAt is null
+              and br.bread.createdBy is null
+              and br.eatenDate between :startDate and :endDate
+            group by br.bread.id, br.bread.stickerNumber
+            order by count(br) desc, br.bread.stickerNumber asc
+            """)
+    List<BreadRecordCountProjection> countRecentActiveSystemRecordsByBread(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("""
+            select br.bread.id as breadId,
+                   count(br) as eatCount,
+                   avg(br.rating) as avgRating,
+                   max(br.eatenDate) as latestEatenDate
+            from BreadRecord br
+            where br.userId = :userId
+              and br.bread.id in :breadIds
+              and br.deletedAt is null
+            group by br.bread.id
+            """)
+    List<BreadRecordCatalogStatsProjection> findCatalogStatsByBreadIds(
+            @Param("userId") UUID userId,
+            @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select br.bread.id as breadId,
+                   br.photoUrl as latestPhotoUrl
+            from BreadRecord br
+            where br.userId = :userId
+              and br.bread.id in :breadIds
+              and br.deletedAt is null
+              and br.createdAt = (
+                  select max(latest.createdAt)
+                  from BreadRecord latest
+                  where latest.userId = :userId
+                    and latest.bread.id = br.bread.id
+                    and latest.deletedAt is null
+              )
+            """)
+    List<BreadRecordLatestPhotoProjection> findLatestPhotoUrlsByBreadIds(
+            @Param("userId") UUID userId,
+            @Param("breadIds") List<UUID> breadIds
+    );
+
+    @Query("""
+            select count(br) as totalRecords,
+                   count(distinct br.bread.id) as totalStickers,
+                   count(distinct case
+                       when br.shopName is not null and trim(br.shopName) <> '' then trim(br.shopName)
+                       else null
+                   end) as uniqueShops,
+                   avg(br.rating) as avgRating
+            from BreadRecord br
+            where br.userId = :userId
+              and br.deletedAt is null
+            """)
+    UserStatsProjection findUserStatsByUserId(@Param("userId") UUID userId);
+}

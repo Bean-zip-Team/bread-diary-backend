@@ -1,0 +1,206 @@
+package com.bean.breaddiary.domain.bread.service;
+
+import com.bean.breaddiary.domain.bread.dto.mapper.BreadMapper;
+import com.bean.breaddiary.domain.bread.entity.Bread;
+import com.bean.breaddiary.domain.breadrecord.dto.request.CreateNewBreadRecordRequest;
+import com.bean.breaddiary.domain.bread.repository.BreadRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.BAGEL;
+import static com.bean.breaddiary.domain.breadtype.BreadTypeTestFixture.PASTRY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+class BreadServiceTest {
+
+    private BreadRepository breadRepository;
+    private BreadMapper breadMapper;
+    private BreadService breadService;
+
+    @BeforeEach
+    void setUp() {
+        breadRepository = mock(BreadRepository.class);
+        breadMapper = mock(BreadMapper.class);
+        breadService = new BreadService(breadRepository, breadMapper);
+    }
+
+    @Test
+    void searchAutocompleteBreadsUsesStickerCursorForQuerySearch() {
+        Bread firstBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                4,
+                "크루키",
+                PASTRY
+        );
+        Bread secondBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                6,
+                "크루아상",
+                PASTRY
+        );
+
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        when(breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
+                "크루",
+                3,
+                userId,
+                PageRequest.of(0, 2)
+        )).thenReturn(List.of(firstBread, secondBread));
+
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("크루", "3", 1, userId);
+
+        assertEquals(List.of(firstBread), actual.getItems());
+        assertEquals("4", actual.getNextCursor());
+        assertTrue(actual.getHasMore());
+    }
+
+    @Test
+    void searchAutocompleteBreadsUsesPopularCursorWhenQueryIsBlank() {
+        Bread firstBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                4,
+                "소금빵",
+                PASTRY
+        );
+        Bread secondBread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000002"),
+                8,
+                "베이글",
+                BAGEL
+        );
+
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        when(breadRepository.findPopularAutocompleteAfterCursor(
+                12L,
+                3,
+                userId,
+                PageRequest.of(0, 2)
+        )).thenReturn(List.of(firstBread, secondBread));
+        when(breadRepository.countActiveRecordsByBreadId(firstBread.getId())).thenReturn(11L);
+
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("  ", "12_3", 1, userId);
+
+        assertEquals(List.of(firstBread), actual.getItems());
+        assertEquals("11_4", actual.getNextCursor());
+        assertTrue(actual.getHasMore());
+        verify(breadRepository).countActiveRecordsByBreadId(firstBread.getId());
+    }
+
+    @Test
+    void searchAutocompleteBreadsReturnsNoCursorWhenPageEnds() {
+        Bread bread = createBread(
+                UUID.fromString("10000000-0000-0000-0000-000000000001"),
+                4,
+                "소금빵",
+                PASTRY
+        );
+
+        when(breadRepository.findAutocompleteByNameContainingAfterStickerNumber(
+                "소금",
+                null,
+                null,
+                PageRequest.of(0, 21)
+        )).thenReturn(List.of(bread));
+
+        BreadService.AutocompleteSlice actual = breadService.searchAutocompleteBreads("소금", null, null, null);
+
+        assertEquals(List.of(bread), actual.getItems());
+        assertNull(actual.getNextCursor());
+        assertFalse(actual.getHasMore());
+        verifyNoMoreInteractions(breadMapper);
+    }
+
+    @Test
+    void getBreadByIdAllowsSystemBreadForAnonymousUser() {
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        Bread bread = createBread(breadId, 4, "소금빵", PASTRY);
+
+        when(breadRepository.findById(breadId)).thenReturn(java.util.Optional.of(bread));
+
+        Bread actual = breadService.getBreadById(breadId, null);
+
+        assertEquals(bread, actual);
+    }
+
+    @Test
+    void getBreadByIdRejectsOtherUsersUserCreatedBread() {
+        UUID breadId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+        Bread bread = Bread.builder()
+                .id(breadId)
+                .stickerNumber(4)
+                .name("소금빵")
+                .breadType(PASTRY)
+                .imageUrl("https://cdn.bread-diary.app/breads/salt.webp")
+                .createdBy(UUID.fromString("00000000-0000-0000-0000-000000000009"))
+                .build();
+
+        when(breadRepository.findById(breadId)).thenReturn(java.util.Optional.of(bread));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> breadService.getBreadById(breadId, UUID.fromString("00000000-0000-0000-0000-000000000001"))
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void createUserBreadUsesOriginalDefaultImageUrl() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        CreateNewBreadRecordRequest request = new CreateNewBreadRecordRequest();
+        request.setName("말차 크로플");
+
+        Bread savedBread = Bread.builder()
+                .id(UUID.fromString("20000000-0000-0000-0000-000000000001"))
+                .stickerNumber(9)
+                .name("말차 크로플")
+                .breadType(PASTRY)
+                .imageUrl("https://du4zizlgiw14n.cloudfront.net/images/014_%EB%85%B9%EC%B0%A8%20%EC%8B%9D%EB%B9%B5.png")
+                .createdBy(userId)
+                .build();
+
+        when(breadRepository.existsByName("말차 크로플")).thenReturn(false);
+        when(breadRepository.findTopByOrderByStickerNumberDesc()).thenReturn(java.util.Optional.of(
+                Bread.builder().stickerNumber(8).build()
+        ));
+        when(breadMapper.mapToBread(
+                eq(request),
+                eq(PASTRY),
+                eq(9),
+                eq("https://du4zizlgiw14n.cloudfront.net/images/014_%EB%85%B9%EC%B0%A8%20%EC%8B%9D%EB%B9%B5.png"),
+                eq(userId)
+        )).thenReturn(savedBread);
+        when(breadRepository.save(savedBread)).thenReturn(savedBread);
+
+        Bread actual = breadService.createUserBread(request, PASTRY, userId);
+
+        assertEquals(savedBread, actual);
+    }
+
+    private Bread createBread(UUID id, int stickerNumber, String name, com.bean.breaddiary.domain.breadtype.entity.BreadType breadType) {
+        return Bread.builder()
+                .id(id)
+                .stickerNumber(stickerNumber)
+                .name(name)
+                .breadType(breadType)
+                .imageUrl("https://cdn.bread-diary.app/breads/" + name + ".webp")
+                .build();
+    }
+}
